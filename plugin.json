@@ -1,0 +1,15 @@
+{
+	"type": "ecmascript",
+	"apiversion": 1,
+	"id": "aMovies",
+	"file": "aMovies.js",
+	"showtimeVersion": "4.8",
+	"version": "0.5.3",
+	"author": "Buksa",
+	"title": "aMovies",
+	"icon": "logo.png",
+	"synopsis": "aMovies.tv - фильмы, сериалы и мультфильмы онлайн в HD.",
+	"description": "<p>aMovies - Movian plugin is the integration of the website <a href=\"http://aMovies.tv\">aMovies.tv</a>",
+	"category": "video",
+	"homepage": "https://github.com/Buksa/movian-plugin-aMovies.tv"
+}
