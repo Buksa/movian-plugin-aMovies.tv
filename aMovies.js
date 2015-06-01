@@ -16,7 +16,11 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-//ver 0.5.3
+//ver 0.5.4
+
+var http = require('showtime/http');
+var html = require('showtime/html');
+
 (function(plugin) {
     var plugin_info = plugin.getDescriptor();
     var PREFIX = plugin_info.id;
@@ -64,13 +68,13 @@
     plugin.addURI(PREFIX + ":start", function(page) {
         page.metadata.logo = plugin.path + "logo.png";
         page.metadata.title = PREFIX;
-        if (!service.tosaccepted) if (showtime.message(tos, true, true)) service.tosaccepted = 1;
+        if (!service.tosaccepted) if (popup.message(tos, true, true)) service.tosaccepted = 1;
             else {
                 page.error("TOS not accepted. plugin disabled");
                 return;
             }
-        var v = showtime.httpReq(BASE_URL).toString();
-        var re = /h2 class="title_d_dot"[\S\s]+?<span>([^<]+)[\S\s]+?href="([^"]+)[\S\s]+?<ul class=([\S\s]+?)<\/ul/g;
+        var v = http.request(BASE_URL).toString();
+        var re = /class="title_d_dot"[\S\s]+?<span>([^<]+)[\S\s]+?href="([^"]+)[\S\s]+?<ul class=([\S\s]+?)<\/ul/g;
         var re2 = /date">(.+?)<[\S\s]+?src="(.+?)"[\S\s]+?href="http:\/\/amovies.tv(.+?)">(.+?)<[\S\s]+?<span>(.*)/g;
         var m = re.execAll(v);
         var data = [];
@@ -108,7 +112,7 @@
         page.appendItem("", "separator", {
             title: new showtime.RichText('Мультфильмы')
         });
-        v = showtime.httpReq(BASE_URL + '/cartoons/').toString();
+        v = http.request(BASE_URL + '/cartoons/').toString();
         re = /<div class="date">(.+?)<[\S\s]+?img src="([^"]+)[\S\s]+?<a href="http:\/\/amovies.tv([^"]+)">([^<]+)[\S\s]+?<span>(.+?)<\/span>/g;
         m = re.execAll(v);
         for (i = 0; i < 6; i++) {
@@ -129,7 +133,7 @@
         page.appendItem("", "separator", {
             title: new showtime.RichText('Серии ENG')
         });
-        v = showtime.httpReq(BASE_URL + '/eng/').toString();
+        v = http.request(BASE_URL + '/eng/').toString();
         re = /<div class="date">(.+?)<[\S\s]+?img src="([^"]+)[\S\s]+?<a href="http:\/\/amovies.tv([^"]+)">([^<]+)[\S\s]+?<span>(.+?)<\/span>/g;
         m = re.execAll(v);
         for (i = 0; i < 6; i++) {
@@ -158,7 +162,7 @@
         page.contents = "items";
         page.type = "directory";
         page.metadata.logo = plugin.path + "logo.png";
-        v = showtime.httpReq(BASE_URL + type).toString();
+        v = http.request(BASE_URL + type).toString();
         page.metadata.title = new showtime.RichText(PREFIX + ' | ' + (/<title>(.*?)<\/title>/.exec(v)[1]));
         re = /<title>(.*?)<\/title>/;
         m = re.exec(v);
@@ -209,19 +213,19 @@
                 } catch (err) {
                     //end of pages
                     if (err.message == 'HTTP error: 404') {
-                        showtime.notify("Достигнут конец директории.", 5);
+                        popup.notify("Достигнут конец директории.", 5);
                         return false;
                     }
                     //most probably server overload
                     else {
-                        showtime.notify("Подгрузка не удалась. Возможно, сервер перегружен.", 5);
+                        popup.notify("Подгрузка не удалась. Возможно, сервер перегружен.", 5);
                         //trying to reload the page
                         pageNumber--;
                         return true;
                     }
                 }
             };
-            showtime.print("Let's wait " + delay + " msec before making a request!");
+            print("Let's wait " + delay + " msec before making a request!");
             showtime.sleep(delay);
             var list = loadItems();
 
@@ -247,7 +251,7 @@
     function listScraper(url, respond) {
         p('function listScraper (url=' + url + ',respond=' + respond + ')')
         if (!respond) {
-            respond = showtime.httpReq(url, {
+            respond = http.request(url, {
                 debug: service.debug,
                 method: 'GET',
                 headers: {
@@ -294,7 +298,7 @@
         page.contents = "items";
         page.type = "directory";
         page.metadata.logo = plugin.path + "logo.png";
-        v = showtime.httpReq(BASE_URL + link).toString();
+        v = http.request(BASE_URL + link).toString();
         page.metadata.title = new showtime.RichText(PREFIX + ' | ' + (/<title>(.*?)<\/title>/.exec(v)[1]));
         re = /<title>(.*?)<\/title>/;
         m = re.exec(v);
@@ -306,7 +310,7 @@
 
         function loader() {
             //http://amovies.tv/serials/page/2/
-            var v = showtime.httpReq(BASE_URL + link + 'page/' + offset + '/').toString();
+            var v = http.request(BASE_URL + link + 'page/' + offset + '/').toString();
             var has_nextpage = false;
             var match = v.match(/<ul class="ul_clear navigation">[\S\s]+?"http:\/\/amovies.tv(.+?)"><li>Вперед<\/li><\/a>/);
             if (match) has_nextpage = true
@@ -338,9 +342,20 @@
     plugin.addURI(PREFIX + ":page:(.*)", function(page, link) {
         var i, v, item, re, re2, m, m2, data = {};
         p('Open page: ' + BASE_URL + link);
-        v = showtime.httpReq(BASE_URL + link).toString();
-        p(v)
-
+        v = http.request(BASE_URL + link).toString();
+        var dom = html.parse(v)
+        //var meta = dom.root.getElementByTagName('meta')
+        //for (i in meta){
+        //      if (meta[i].attributes.getNamedItem('property')) {
+        //    if (meta[i].attributes.getNamedItem('property').value == og)
+        //        p(meta[i].attributes.getNamedItem('content').value)
+        //    }
+        //
+        //}
+        
+        var article = dom.root.getElementByTagName('article')[0]
+        var title = article.getElementByTagName('h1')[0].textContent
+        p(title)
         data.Referer = BASE_URL + link
         post_full = v.match(/<article class="post_full">([\s\S]+)<div class="vk_comments">/);
         if (post_full != null) {
@@ -355,7 +370,7 @@
 
         try {
             var md = {};
-            md.title = /title_d_dot"><span> ([^<]+)/.exec(post_full)[1]
+            md.title = title
             md.icon = /<img src="([^"]+)/g.exec(post_full)[1]
             md.icon = md.icon.indexOf('http') !== -1 ? md.icon : BASE_URL + md.icon
 
@@ -380,48 +395,56 @@
             md.description = match(/<div class="post_text">([\S\s]+?)<\/div>/, post_full, 1);
             page.metadata.title = md.title;
             //Трейлер:
-            //page.appendItem("", "separator", {
+            //
+            //            page.appendItem("", "separator", {
             //    title: new showtime.RichText('Трейлер:')
             //});
-
-            page.appendItem("youtube:feed:" + escape("https://gdata.youtube.com/feeds/api/videos?q=" + encodeURIComponent('Русский Трейлер ' + md.title)), "directory", {
-                title: 'найти трейлер на YouTube'
-            });
-            if (link.indexOf('katalog-serialov') !== -1) {
-                //trailer
-                var json = showtime.httpReq('https://gdata.youtube.com/feeds/api/videos?q=' + encodeURIComponent('Русский трейлер сериал ' + md.title + 'сезон 1') + '&max-results=1&v=2&alt=jsonc&orderby=published').toString();
-                if (json.indexOf('"id"') !== -1) {
-                    json = JSON.parse(json);
-                    //             https://gdata.youtube.com/feeds/api/videos?q=Трейлер&max-results=1&v=2&alt=jsonc&orderby=published
-                    page.appendItem('youtube:video:simple:' + escape(page.metadata.title + " - " + 'Трейлер') + ":" + json.data.items[0].id, "video", {
-                        title: 'Трейлер: ' + md.title,
-                        icon: json.data.items[0].thumbnail.hqDefault
-                    });
-                }
-                p('katalog-serialov' + '\n' + link);
-                re = /<strong>(\w сезон) <\/strong>(.*)/g;
-                re2 = /href="http:\/\/amovies.tv(.+?)" >(.+?)<\/a>/g;
-                m = re.execAll(v);
-                for (i = 0; i < m.length; i++) {
-                    page.appendItem("", "separator", {
-                        title: new showtime.RichText(m[i][1])
-                    });
-                    m2 = re2.execAll(m[i][2].trim());
-                    for (var j = 0; j < m2.length; j++) {
-                        page.appendItem(PREFIX + ":page:" + m2[j][1], "video", {
-                            title: new showtime.RichText(md.title + ' | ' + m2[j][2]),
-                            year: md.year,
-                            icon: md.icon,
-                            genre: md.genre,
-                            duration: +md.duration,
-                            rating: +md.rating * 10,
-                            description: new showtime.RichText((md.status ? 'Статус: ' + md.status + '\n' : '') + (md.director ? 'Режиссер: ' + md.director + '\n' : '') + (md.actor ? 'Актеры: ' + md.actor + '\n' : '') + '\n' + md.description)
+            var json = http.request('https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&type=video&q=' + encodeURIComponent('Русский трейлер сериал ' + MetaTag(dom, 'og:title')) + '&key=AIzaSyCSDI9_w8ROa1UoE2CNIUdDQnUhNbp9XR4').toString();
+            if (json.indexOf('"id"') !== -1) {
+                json = JSON.parse(json);
+                //             https://gdata.youtube.com/feeds/api/videos?q=Трейлер&max-results=1&v=2&alt=jsonc&orderby=published
+                page.appendItem('youtube:video:simple:' + escape(page.metadata.title + " - " + 'Трейлер') + ":" + json.items[0].id.videoId, "video", {
+                    title: 'Трейлер: ' + MetaTag(dom, 'og:title'),
+                    icon: json.items[0].snippet.thumbnails.high.url
+                });
+            }
+            if (article.getElementByClassName('arhive_news').length) {
+                var arhive_news = article.getElementByClassName('arhive_news')[0]
+                //for (i = 0 in arhive_news.children){
+                for (i = 0; i < arhive_news.children.length; i++) {
+                    if (arhive_news.children[i].getElementByTagName('strong').length) {
+                        var season = arhive_news.children[i].getElementByTagName('strong')[0].textContent
+                        page.appendItem("", "separator", {
+                            title: new showtime.RichText(season)
                         });
+                        for (j = 0; j < arhive_news.children[i].getElementByTagName('a').length; j++) {
+                            if (arhive_news.children[i].getElementByTagName('a').length) {
+                                var translate = arhive_news.children[i].getElementByTagName('a')[j].textContent
+                                var href = arhive_news.children[i].getElementByTagName('a')[j].attributes.getNamedItem('href').value
+                                p(href.match(/http:\/\/amovies.tv\/(.*)/)[1])
+                                page.appendItem(PREFIX + ":page:" + (href.match('http://amovies.tv(.*)')[1]), "video", {
+                                    title: new showtime.RichText(md.title + ' | ' + translate),
+                                    year: md.year,
+                                    icon: md.icon,
+                                    genre: md.genre,
+                                    duration: +md.duration,
+                                    rating: +md.rating * 10,
+                                    description: new showtime.RichText((md.status ? 'Статус: ' + md.status + '\n' : '') + (md.director ? 'Режиссер: ' + md.director + '\n' : '') + (md.actor ? 'Актеры: ' + md.actor + '\n' : '') + '\n' + md.description)
+                                });
+
+                            }
+                        }
                     }
                 }
             }
+
+
             if (link.indexOf('serials') != -1 || link.indexOf('cartoons') != -1) {
-                // var JSON = JSON.parse(showtime.httpReq('http://query.yahooapis.com/v1/public/yql?q=use%20%22store%3A%2F%2FcruFRRY1BVjVHmIw4EPyYu%22%20as%20Untitled%3B%20SELECT%20Series.seriesid%20FROM%20Untitled%20WHERE%20seriesname%3D%22'+encodeURIComponent(s[0].trim())+'%22%20and%20language%3D%22ru%22%20|%20truncate%28count%3D1%29&format=json'))
+                //page.appendItem("youtube:searcher:video:" + 'Русский Трейлер ' + md.eng_title, "directory", {
+                //    title: 'найти трейлер на YouTube'
+                //});
+
+                // var JSON = JSON.parse(http.request('http://query.yahooapis.com/v1/public/yql?q=use%20%22store%3A%2F%2FcruFRRY1BVjVHmIw4EPyYu%22%20as%20Untitled%3B%20SELECT%20Series.seriesid%20FROM%20Untitled%20WHERE%20seriesname%3D%22'+encodeURIComponent(s[0].trim())+'%22%20and%20language%3D%22ru%22%20|%20truncate%28count%3D1%29&format=json'))
                 p('serials' + '\n' + link);
                 //re = /value=(?:"http:\/\/vk.com\/|"http:\/\/rutube.ru\/|"http:\/\/videoapi.my.mail.ru\/)([^"]+)[\S\s]+?>([^<]+)/g;
                 re = /value=(?:".*?)(oid=.+?&id=.+?&hash=[^&]+|videoapi.my.mail.ru\/[^"]+)[\S\s]+?>([^<]+)/g;
@@ -533,18 +556,18 @@
             page.metadata.title = data.title + " | " + data.season + " \u0441\u0435\u0437\u043e\u043d " + " | " + data.episode + " \u0441\u0435\u0440\u0438\u044f"
         } else page.metadata.title = data.title
 
-        var videoparams = {
-            canonicalUrl: canonicalUrl,
-            no_fs_scan: true,
-            title: data.eng_title,
-            year: data.year ? data.year : 0,
-            season: data.season ? data.season : -1,
-            episode: data.episode ? data.episode : -1,
-            sources: [{
-                    url: []
-                }
-            ],
-            subtitles: []
+            var videoparams = {
+                canonicalUrl: canonicalUrl,
+                no_fs_scan: true,
+                title: data.eng_title,
+                year: data.year ? data.year : 0,
+                season: data.season ? data.season : -1,
+                episode: data.episode ? data.episode : -1,
+                sources: [{
+                        url: []
+                    }
+                ],
+                subtitles: []
         };
 
 
@@ -580,11 +603,11 @@
 
         if (data.url.indexOf('oid=') !== -1) {
 
-            vars = JSON.parse(showtime.httpReq('https://api.vk.com/method/video.getEmbed?' + data.url.replace('&id', '&video_id').replace('&hash', '&embed_hash')).toString());
+            vars = JSON.parse(http.request('https://api.vk.com/method/video.getEmbed?' + data.url.replace('&id', '&video_id').replace('&hash', '&embed_hash')).toString());
             p(vars)
             if (vars.error) {
                 page.metadata.title = vars.error.error_msg
-                showtime.notify(vars.error.error_msg + '\n' + 'This video has been removed from public access.', 3)
+                popup.notify(vars.error.error_msg + '\n' + 'This video has been removed from public access.', 3)
 
             } else {
                 for (key in vars.response) {
@@ -614,7 +637,7 @@
 
         if (data.url.indexOf('hdgo.cc') !== -1) {
             p(data.url)
-            var v = showtime.httpReq(data.url, {
+            var v = http.request(data.url, {
                 method: 'GET',
                 headers: {
                     Referer: data.Referer
@@ -623,19 +646,19 @@
             }).toString();
             p(v)
             video_url = /source src="(http.+\/)(.+?)\.mp4/.exec(v)
-//            function setHTML5 () {
-//$('#player-hd').html('<video controls autoplay width=100% height=100%><source src="http://server11.hdgo.cc/flv/9f382d73f27aacb231c5cb26b42ec05d/5ca24e0be2622243b6dcf25f95da0239.mp4" type="video/mp4; codecs="avc1.4D401E, mp4a.40.2""></video>');
-//	}
-//	
-//function setPlayer () {
-//    if (is_html5()) {
-//        setHTML5();
-//    } else {
-//        setFlash('vCV82iob3gRLvcy43Ik43jEcv5hZkasBUatLk5Wav145t1DNkg31kjncUxFjUjn1txtzUanNy5nbt5wjtgwZv1wjUQnbkQuHkQnatjnNygyHy5ojkjnzkjZzkdEVtjtmv5k8GDrr');
-////    }
-////}
-//
-//            http: //server17.hdgo.cc/flv/9f382d73f27aacb231c5cb26b42ec05d/480-4fb3f9e2929074d52d35150af30a7f24.flv
+            //            function setHTML5 () {
+            //$('#player-hd').html('<video controls autoplay width=100% height=100%><source src="http://server11.hdgo.cc/flv/9f382d73f27aacb231c5cb26b42ec05d/5ca24e0be2622243b6dcf25f95da0239.mp4" type="video/mp4; codecs="avc1.4D401E, mp4a.40.2""></video>');
+            //	}
+            //	
+            //function setPlayer () {
+            //    if (is_html5()) {
+            //        setHTML5();
+            //    } else {
+            //        setFlash('vCV82iob3gRLvcy43Ik43jEcv5hZkasBUatLk5Wav145t1DNkg31kjncUxFjUjn1txtzUanNy5nbt5wjtgwZv1wjUQnbkQuHkQnatjnNygyHy5ojkjnzkjZzkdEVtjtmv5k8GDrr');
+            ////    }
+            ////}
+            //
+            //            http: //server17.hdgo.cc/flv/9f382d73f27aacb231c5cb26b42ec05d/480-4fb3f9e2929074d52d35150af30a7f24.flv
             videoparams.sources = [{
                     url: video_url[1] + video_url[2] + '.mp4',
                     mimetype: "video/mp4"
@@ -713,7 +736,7 @@
             page.type = "video";
             page.source = "videoparams:" + JSON.stringify(videoparams)
         } else {
-            showtime.notify('video', 3);
+            popup.notify('video', 3);
         }
         page.metadata.logo = logo;
         page.loading = false;
@@ -721,7 +744,7 @@
     plugin.addSearcher(PREFIX + " - Videos", plugin.path + "logo.png", function(page, query) {
         try {
             showtime.trace("Search aMovies Videos for: " + query);
-            var v = showtime.httpReq(BASE_URL + '/index.php?do=search', {
+            var v = http.request(BASE_URL + '/index.php?do=search', {
                 debug: true,
                 postdata: {
                     do :'search',
@@ -752,7 +775,7 @@
 
 
 
-    //showtime.httpReq('https://api.vk.com/method/video.getEmbed', {args : ajaxParams}, function(result) {
+    //http.request('https://api.vk.com/method/video.getEmbed', {args : ajaxParams}, function(result) {
     //  if (result.response) {
     //    if (!is_mobile()) {
     //      var flashvars = ['nologo=1','md_author=UPFY.ORG � Video Search'];
@@ -932,9 +955,18 @@
     //
     // Add to RegExp prototype
 
+
+    function MetaTag(dom, tag) {
+        var meta = dom.root.getElementByTagName('meta')
+        for (i in meta) {
+            if (meta[i].attributes.getNamedItem('property') && meta[i].attributes.getNamedItem('property').value == tag) return meta[i].attributes.getNamedItem('content').value
+        }
+        return ''
+    }
+
     function getIMDBid(title) {
         p(encodeURIComponent(showtime.entityDecode(unescape(title))).toString());
-        var resp = showtime.httpReq('http://www.google.com/search?q=imdb+' + encodeURIComponent(showtime.entityDecode(unescape(title))).toString()).toString();
+        var resp = http.request('http://www.google.com/search?q=imdb+' + encodeURIComponent(showtime.entityDecode(unescape(title))).toString()).toString();
         var re = /http:\/\/www.imdb.com\/title\/(tt\d+).*?<\/a>/;
         var imdbid = re.exec(resp);
         if (imdbid) imdbid = imdbid[1];
@@ -955,23 +987,25 @@
         }).toString();
         id = match(/<seriesid>(.+?)<\/seriesid>/, v, 1);
         if (id) {
-            v = (showtime.httpReq('http://www.thetvdb.com/api/0ADF8BA762FED295/series/' + id + '/banners.xml').toString());
+            v = (http.request('http://www.thetvdb.com/api/0ADF8BA762FED295/series/' + id + '/banners.xml').toString());
             id = match(/<BannerPath>fanart\/original\/([^<]+)/, v, 1);
             return "http://thetvdb.com/banners/fanart/original/" + id;
         }
         return false;
     }
     // Add to RegExp prototype
-    RegExp.prototype.execAll = function(e) {
-        for (var c = [], b = null; null !== (b = this.exec(e));) {
-            var d = [],
-                a;
-            for (a in b) {
-                parseInt(a, 10) == a && d.push(b[a]);
+    RegExp.prototype.execAll = function(str) {
+        var match = null
+        for (var matches = []; null !== (match = this.exec(str));) {
+            var matchArray = [],
+                i;
+            for (i in match) {
+                parseInt(i, 10) == i && matchArray.push(match[i]);
             }
-            c.push(d);
+            matches.push(matchArray);
         }
-        return c;
+        if (this.exec(str) == null) return null
+        return matches;
     };
 
     function match(c, a, b) {
@@ -1003,8 +1037,36 @@
     }
 
     function p(message) {
-        if (typeof(message) === 'object') message = '### object ###' + '\n' + JSON.stringify(message) + '\n' + '### object ###';
-        if (service.debug) showtime.print(message);
+        if (service.debug == '1') {
+            print(message);
+            if (typeof(message) === 'object') print(dump(message))
+        }
+    }
+
+    function dump(arr, level) {
+        var dumped_text = "";
+        if (!level) level = 0;
+
+        //The padding given at the beginning of the line.
+        var level_padding = "";
+        for (var j = 0; j < level + 1; j++) level_padding += "    ";
+
+        if (typeof(arr) == 'object') { //Array/Hashes/Objects
+            for (var item in arr) {
+                var value = arr[item];
+
+                if (typeof(value) == 'object') { //If it is an array,
+                    dumped_text += level_padding + "'" + item + "' ...\n";
+                    dumped_text += dump(value, level + 1);
+                } else {
+                    dumped_text += level_padding + "'" + item + "' => \"" + value + "\"\n";
+                }
+            }
+        } else { //Stings/Chars/Numbers etc.
+
+            dumped_text = arr;
+        }
+        return dumped_text;
     }
 
     function trace(msg) {
