@@ -16,7 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-//ver 0.5.4
+//ver 0.5.5
 
 var http = require('showtime/http');
 var html = require('showtime/html');
@@ -25,7 +25,7 @@ var html = require('showtime/html');
     var plugin_info = plugin.getDescriptor();
     var PREFIX = plugin_info.id;
     // bazovyj adress saita
-    var BASE_URL = 'http://amovies.tv';
+    var BASE_URL = 'http://amovies.org';
     var USER_AGENT = 'Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:16.0) Gecko/20120815 Firefox/16.0';
     //logo
     var logo = plugin.path + 'logo.png';
@@ -64,6 +64,26 @@ var html = require('showtime/html');
         service.requestMinDelay = v;
     });
 
+    function start_block(page, href, title, num) {
+        page.appendItem("", "separator", {
+            title: new showtime.RichText(title)
+        });
+        var list = listScraper(BASE_URL + href, false);
+        for (var i = 0; i < (num === 0 ? list.length : num); i++) {
+            page.appendItem(PREFIX + ":page:" + escape(list[i].url), "video", {
+                title: new showtime.RichText(list[i].title + (list[i].tag ? ' | ' + list[i].tag : '')),
+                description: list[i].description ? new showtime.RichText(list[i].description) : list[i].title,
+                icon: new showtime.RichText(list[i].image)
+            });
+        }
+        page.appendItem(PREFIX + ":browse:" + href + ":" + title, "directory", {
+            title: ('Дальше больше') + ' ►',
+            icon: logo
+        });
+
+    }
+
+
     //First level start page
     plugin.addURI(PREFIX + ":start", function(page) {
         page.metadata.logo = plugin.path + "logo.png";
@@ -73,115 +93,41 @@ var html = require('showtime/html');
                 page.error("TOS not accepted. plugin disabled");
                 return;
             }
-        var v = http.request(BASE_URL).toString();
-        var re = /class="title_d_dot"[\S\s]+?<span>([^<]+)[\S\s]+?href="([^"]+)[\S\s]+?<ul class=([\S\s]+?)<\/ul/g;
-        var re2 = /date">(.+?)<[\S\s]+?src="(.+?)"[\S\s]+?href="http:\/\/amovies.tv(.+?)">(.+?)<[\S\s]+?<span>(.*)/g;
-        var m = re.execAll(v);
-        var data = [];
-        for (var i = 0; i < /*m.length*/ 3; i++) {
-            page.appendItem("", "separator", {
-                title: new showtime.RichText(m[i][1])
-            });
-            data.push({
-                title: m[i][1],
-                href: m[i][2]
-            });
-            var m2 = re2.execAll(m[i][3].trim());
-            for (var j = 0; j < m2.length; j++) {
-                page.appendItem(PREFIX + ":page:" + m2[j][3], "video", {
-                    title: new showtime.RichText(m2[j][4] + (m2[j][5].length !== 0 ? ' | ' + m2[j][5] : '')),
-                    description: new showtime.RichText(m2[j][5] + '\n' + "Updated: " + m2[j][1]),
-                    icon: m2[j][2]
-                });
-                data.push({
-                    title: (m2[j][4]),
-                    description: (m2[j][5] + '\n' + "Updated: " + m2[j][1]),
-                    icon: m2[j][2]
-                });
-            }
-            page.appendItem(PREFIX + ":index:" + m[i][2], "directory", {
-                title: ('Дальше больше') + ' ►',
-                icon: logo
-            });
-            //page.appendItem(PREFIX + ":browse:" + m[i][2], "directory", {
-            //    title: ('Дальше большеbrowse') + ' ►',
-            //    icon: logo
-            //});
-        }
-        //Мультфильмы
-        page.appendItem("", "separator", {
-            title: new showtime.RichText('Мультфильмы')
-        });
-        v = http.request(BASE_URL + '/cartoons/').toString();
-        re = /<div class="date">(.+?)<[\S\s]+?img src="([^"]+)[\S\s]+?<a href="http:\/\/amovies.tv([^"]+)">([^<]+)[\S\s]+?<span>(.+?)<\/span>/g;
-        m = re.execAll(v);
-        for (i = 0; i < 6; i++) {
-            // p(m[i][1]+'\n'+m[i][2]+'\n'+m[i][3]+'\n')
-            page.appendItem(PREFIX + ":page:" + m[i][3], "video", {
-                //title: new showtime.RichText(m[i][4] + ' | ' + m[i][5].replace('<br />', ' | ')),
-                title: new showtime.RichText(m[i][4] + (m[i][5].length !== 0 ? ' | ' + m[i][5] : '')),
-                description: new showtime.RichText(m[i][5] + '\n' + "Updated: " + m[i][1]),
-                icon: m[i][2]
-            });
-        }
-        page.appendItem(PREFIX + ":index:" + '/cartoons/', "directory", {
-            title: ('Дальше больше') + ' ►',
-            icon: logo
-        });
-        //Мультфильмы
-        //Серии ENG
-        page.appendItem("", "separator", {
-            title: new showtime.RichText('Серии ENG')
-        });
-        v = http.request(BASE_URL + '/eng/').toString();
-        re = /<div class="date">(.+?)<[\S\s]+?img src="([^"]+)[\S\s]+?<a href="http:\/\/amovies.tv([^"]+)">([^<]+)[\S\s]+?<span>(.+?)<\/span>/g;
-        m = re.execAll(v);
-        for (i = 0; i < 6; i++) {
-            page.appendItem(PREFIX + ":page:" + m[i][3], "video", {
-                title: new showtime.RichText(m[i][4]),
-                description: new showtime.RichText(m[i][5] + '\n' + "Updated: " + m[i][1]),
-                icon: m[i][2]
-            });
-        }
-        page.appendItem(PREFIX + ":index:" + '/eng/', "directory", {
-            title: ('Дальше больше') + ' ►',
-            icon: logo
-        });
-        //Серии ENG
-        p(data)
         page.type = "directory";
+        page.contents = "items";
+        start_block(page, '/serials/', 'Новые серии', 15)
+        start_block(page, '/katalog-serialov/', 'Новые сериалы', 5)
+        // start_block(page, '/film/', 'Новые фильмы', 5)
+        start_block(page, '/cartoons/', 'Мультфильмы', 5)
+        // start_block(page, '/eng/', 'Серии ENG', 5)
+
         page.contents = "items";
         page.loading = false;
     });
     //Second level
-    plugin.addURI(PREFIX + ":browse:(.*)", browseListPage);
+    plugin.addURI(PREFIX + ":browse:(.*):(.*)", browseListPage);
 
-    function browseListPage(page, type) {
+    function browseListPage(page, href, title) {
 
         var re, v, m;
         page.contents = "items";
         page.type = "directory";
         page.metadata.logo = plugin.path + "logo.png";
-        v = http.request(BASE_URL + type).toString();
-        page.metadata.title = new showtime.RichText(PREFIX + ' | ' + (/<title>(.*?)<\/title>/.exec(v)[1]));
-        re = /<title>(.*?)<\/title>/;
-        m = re.exec(v);
-        page.appendItem(PREFIX + ':start', 'directory', {
-            title: new showtime.RichText('сортировка по : ' + m[1])
-        });
 
-        p('vyzov function browseListPage' + 'page' + 'type=' + type)
+        page.metadata.title = new showtime.RichText(PREFIX + ' | ' + title);
+
+        //page.appendItem(PREFIX + ':start', 'directory', {
+        //    title: new showtime.RichText('сортировка по : ' + title)
+        //});
+
+        p('vyzov function browseListPage' + 'page' + href + title)
         page.contents = "items";
         page.type = "directory";
         page.metadata.logo = plugin.path + "logo.png";
 
-        page.appendItem(PREFIX + ':start', 'directory', {
-            title: new showtime.RichText('сортировка по : ' + type)
-        });
-
         var respond = '';
         var url = '';
-        p(BASE_URL + type);
+        p(BASE_URL + href);
         var pageNumber = 1;
         var list;
         var requestFinished = true,
@@ -191,7 +137,7 @@ var html = require('showtime/html');
 
         function loader() {
             if (!requestFinished) {
-                debug("Request not finished yet, exiting");
+                p("Request not finished yet, exiting");
                 return false;
             }
 
@@ -203,8 +149,8 @@ var html = require('showtime/html');
                     p("Time to make some requests now!");
                     //make request here
 
-                    p("L:" + BASE_URL + type + "page/" + pageNumber);
-                    list = listScraper(BASE_URL + type + 'page/' + pageNumber + '/', false);
+                    p("L:" + BASE_URL + href + "page/" + pageNumber);
+                    list = listScraper(BASE_URL + href + 'page/' + pageNumber + '/', false);
                     pageNumber++;
 
                     requestFinished = true;
@@ -218,6 +164,7 @@ var html = require('showtime/html');
                     }
                     //most probably server overload
                     else {
+                        p(err)
                         popup.notify("Подгрузка не удалась. Возможно, сервер перегружен.", 5);
                         //trying to reload the page
                         pageNumber--;
@@ -226,13 +173,13 @@ var html = require('showtime/html');
                 }
             };
             print("Let's wait " + delay + " msec before making a request!");
-            showtime.sleep(delay);
+            sleep(delay);
             var list = loadItems();
 
             for (var i = 0; i < list.length; i++) {
-                page.appendItem(PREFIX + ':page:' + escape(list[i].url), 'video', {
-                    title: new showtime.RichText(list[i].title),
-                    description: new showtime.RichText(list[i].description),
+                page.appendItem(PREFIX + ":page:" + escape(list[i].url), "video", {
+                    title: new showtime.RichText(list[i].title + (list[i].tag ? ' | ' + list[i].tag : '')),
+                    description: list[i].description ? new showtime.RichText(list[i].description) : list[i].title,
                     icon: new showtime.RichText(list[i].image)
                 });
             }
@@ -259,22 +206,29 @@ var html = require('showtime/html');
                 }
             }).toString();
         }
-
-
-        var re = /<div class="date">(.+?)<[\S\s]+?img src="([^"]+)[\S\s]+?<a href="http:\/\/amovies.tv([^"]+)">([^<]+)[\S\s]+?<span>(.+?)<\/span>/g;
+        //p("####################")
+        //var dom = html.parse(respond)
+        //var dle_content = dom.root.getElementById('dle-content')
+        //p(dle_content.getElementByTagName('li'))
+        //p("####################")
+        //
+        //        //1 = data 2 = img 3= href  4 = title 5 = tag
+        var re = /<div class="date">(.+?)<[\S\s]+?img src="([^"]+)[\S\s]+?<a href="http:\/\/amovies.org([^"]+)">([^<]+)[\S\s]+?<span>(.*)>/g;
 
         var items = new Array(),
             i = 0;
 
         var item = re.exec(respond);
-
+        print(item)
         while (item) {
-            p("Found title:" + item[2]);
+            p("Found title:" + item[4]);
+            p(item[5])
             items.push({
                 url: item[3],
-                title: (item[4] + ' | ' + item[5].replace('<br />', ' | ')),
+                title: item[4],
+                tag: item[5].replace('<br /></span', '').replace('<br />', ' | ').replace('</span', ''),
                 image: item[2],
-                description: (item[5] + '\n' + "Updated: " + item[1])
+                description: ("Updated: " + item[1])
             });
             item = re.exec(respond);
         }
@@ -293,66 +247,58 @@ var html = require('showtime/html');
         return items;
     };
 
-    plugin.addURI(PREFIX + ":index:(.*)", function(page, link) {
-        var re, v, m;
-        page.contents = "items";
-        page.type = "directory";
-        page.metadata.logo = plugin.path + "logo.png";
-        v = http.request(BASE_URL + link).toString();
-        page.metadata.title = new showtime.RichText(PREFIX + ' | ' + (/<title>(.*?)<\/title>/.exec(v)[1]));
-        re = /<title>(.*?)<\/title>/;
-        m = re.exec(v);
-        page.appendItem(PREFIX + ':start', 'directory', {
-            title: new showtime.RichText('сортировка по : ' + m[1])
-        });
-        var offset = 1;
-        //var total_page = parseInt(/<div class="navigation[\S\s]+?nav_ext[\S\s]+?">([^<]+)/.exec(v)[1], 10);
-
-        function loader() {
-            //http://amovies.tv/serials/page/2/
-            var v = http.request(BASE_URL + link + 'page/' + offset + '/').toString();
-            var has_nextpage = false;
-            var match = v.match(/<ul class="ul_clear navigation">[\S\s]+?"http:\/\/amovies.tv(.+?)"><li>Вперед<\/li><\/a>/);
-            if (match) has_nextpage = true
-            re = /<div class="date">(.+?)<[\S\s]+?img src="([^"]+)[\S\s]+?<a href="http:\/\/amovies.tv([^"]+)">([^<]+)[\S\s]+?<span>(.+?)<\/span>/g;
-            m = re.execAll(v);
-            for (var i = 0; i < m.length; i++) {
-                // p(m[i][1]+'\n'+m[i][2]+'\n'+m[i][3]+'\n')
-                page.appendItem(PREFIX + ":page:" + m[i][3], "video", {
-                    title: new showtime.RichText(m[i][4] + ' | ' + m[i][5].replace('<br />', ' | ')),
-                    description: new showtime.RichText(m[i][5] + '\n' + "Updated: " + m[i][1]),
-                    icon: m[i][2]
-                });
-            }
-            //if (nnext) {
-            //page.appendItem(PREFIX + ':index:' + nnext, 'directory', {
-            //    title: new showtime.RichText('Вперед')
-            //});
-            //}
-            //var nnext = match(/<ul class="ul_clear navigation">[\S\s]+?"http:\/\/amovies.tv(.+?)"><li>Вперед<\/li><\/a>/, v, 1);
-            ////p('nnext='+nnext+' !nnext='+!nnext+' !!nnext='+!!nnext)
-            offset++;
-            return has_nextpage;
-            // return offset < parseInt(/<div class="navigation[\S\s]+?nav_ext[\S\s]+?">([^<]+)/.exec(v)[1], 10)
-        }
-        loader();
-        page.loading = false;
-        page.paginator = loader;
-    });
+    //plugin.addURI(PREFIX + ":index:(.*):(.*)", function(page, link, title) {
+    //    var re, v, m;
+    //    page.contents = "items";
+    //    page.type = "directory";
+    //    page.metadata.logo = plugin.path + "logo.png";
+    //    v = http.request(BASE_URL + link).toString();
+    //    page.metadata.title = new showtime.RichText(PREFIX + ' | ' + (/<title>(.*?)<\/title>/.exec(v)[1]));
+    //    re = /<title>(.*?)<\/title>/;
+    //    m = re.exec(v);
+    //    page.appendItem(PREFIX + ':start', 'directory', {
+    //        title: new showtime.RichText('сортировка по : ' + m[1])
+    //    });
+    //    var offset = 1;
+    //    //var total_page = parseInt(/<div class="navigation[\S\s]+?nav_ext[\S\s]+?">([^<]+)/.exec(v)[1], 10);
+    //
+    //    function loader() {
+    //        //http://amovies.org/serials/page/2/
+    //        var v = http.request(BASE_URL + link + 'page/' + offset + '/').toString();
+    //        var has_nextpage = false;
+    //        var match = v.match(/<ul class="ul_clear navigation">[\S\s]+?"http:\/\/amovies.org(.+?)"><li>Вперед<\/li><\/a>/);
+    //        if (match) has_nextpage = true
+    //        re = /<div class="date">(.+?)<[\S\s]+?img src="([^"]+)[\S\s]+?<a href="http:\/\/amovies.org([^"]+)">([^<]+)[\S\s]+?<span>(.+?)<\/span>/g;
+    //        m = re.execAll(v);
+    //        for (var i = 0; i < m.length; i++) {
+    //            // p(m[i][1]+'\n'+m[i][2]+'\n'+m[i][3]+'\n')
+    //            page.appendItem(PREFIX + ":page:" + m[i][3], "video", {
+    //                title: new showtime.RichText(m[i][4] + ' | ' + m[i][5].replace('<br />', ' | ')),
+    //                description: new showtime.RichText(m[i][5] + '\n' + "Updated: " + m[i][1]),
+    //                icon: m[i][2]
+    //            });
+    //        }
+    //        //if (nnext) {
+    //        //page.appendItem(PREFIX + ':index:' + nnext, 'directory', {
+    //        //    title: new showtime.RichText('Вперед')
+    //        //});
+    //        //}
+    //        //var nnext = match(/<ul class="ul_clear navigation">[\S\s]+?"http:\/\/amovies.org(.+?)"><li>Вперед<\/li><\/a>/, v, 1);
+    //        ////p('nnext='+nnext+' !nnext='+!nnext+' !!nnext='+!!nnext)
+    //        offset++;
+    //        return has_nextpage;
+    //        // return offset < parseInt(/<div class="navigation[\S\s]+?nav_ext[\S\s]+?">([^<]+)/.exec(v)[1], 10)
+    //    }
+    //    loader();
+    //    page.loading = false;
+    //    page.paginator = loader;
+    //});
     plugin.addURI(PREFIX + ":page:(.*)", function(page, link) {
         var i, v, item, re, re2, m, m2, data = {};
         p('Open page: ' + BASE_URL + link);
         v = http.request(BASE_URL + link).toString();
         var dom = html.parse(v)
-        //var meta = dom.root.getElementByTagName('meta')
-        //for (i in meta){
-        //      if (meta[i].attributes.getNamedItem('property')) {
-        //    if (meta[i].attributes.getNamedItem('property').value == og)
-        //        p(meta[i].attributes.getNamedItem('content').value)
-        //    }
-        //
-        //}
-        
+
         var article = dom.root.getElementByTagName('article')[0]
         var title = article.getElementByTagName('h1')[0].textContent
         p(title)
@@ -364,9 +310,6 @@ var html = require('showtime/html');
         } else {
             p(' Match attempt failed')
         }
-
-
-
 
         try {
             var md = {};
@@ -421,8 +364,8 @@ var html = require('showtime/html');
                             if (arhive_news.children[i].getElementByTagName('a').length) {
                                 var translate = arhive_news.children[i].getElementByTagName('a')[j].textContent
                                 var href = arhive_news.children[i].getElementByTagName('a')[j].attributes.getNamedItem('href').value
-                                p(href.match(/http:\/\/amovies.tv\/(.*)/)[1])
-                                page.appendItem(PREFIX + ":page:" + (href.match('http://amovies.tv(.*)')[1]), "video", {
+                                p(href.match(/http:\/\/amovies.org\/(.*)/)[1])
+                                page.appendItem(PREFIX + ":page:" + (href.match('http://amovies.org(.*)')[1]), "video", {
                                     title: new showtime.RichText(md.title + ' | ' + translate),
                                     year: md.year,
                                     icon: md.icon,
@@ -475,16 +418,13 @@ var html = require('showtime/html');
                     }
                 }
                 //Перейти к каталогу сериала
-                re = /<div class="link_catalog">.+?"http:\/\/amovies.tv(.+?)">(.+?)</;
+                re = /<div class="link_catalog">.+?"http:\/\/amovies.org(.+?)">(.+?)</;
                 m = re.exec(v);
                 if (m) {
                     page.appendItem(PREFIX + ":page:" + m[1], "directory", {
                         title: m[2]
                     });
                 }
-                //page.appendItem("", "separator", {
-                //    title: new showtime.RichText('Перейти к каталогу сериала')
-                //});
             }
             if (link.indexOf('/film/') != -1) {
                 data.eng_title = md.title.split(' | ')[1];
@@ -510,7 +450,7 @@ var html = require('showtime/html');
                     });
                 }
             }
-            //http://amovies.tv/eng
+            //http://amovies.org/eng
             if (link.indexOf('/eng/') != -1) {
                 p('eng' + '\n' + link);
                 re = /value=(?:"http:\/\/vk.com\/|"http:\/\/rutube.ru\/)([^"]+)">(\W+)([0-9]+(?:\.[0-9]*)?) сезон ([0-9]+(?:\.[0-9]*)?) серия/g;
@@ -573,10 +513,10 @@ var html = require('showtime/html');
 
         p(data);
         if (data.url.indexOf('ideoapi.my.mail.ru') !== -1) {
-            v = showtime.httpGet('http://' + data.url);
+            v = http.request('http://' + data.url);
             // var video_key = getCookie('video_key',v.multiheaders)
             //https://api.vk.com/method/video.getEmbed?oid=-86688251&video_id=170996975&embed_hash=1c63dad9f125d575&hd=2
-            var json = JSON.parse(showtime.httpGet(/metadataUrl":"([^"]+)/.exec(v)[1]));
+            var json = JSON.parse(http.request(/metadataUrl":"([^"]+)/.exec(v)[1]));
             for (i in json.videos) {
                 videoparams.sources = [{
                         url: json.videos[i].url,
@@ -649,7 +589,7 @@ var html = require('showtime/html');
             //            function setHTML5 () {
             //$('#player-hd').html('<video controls autoplay width=100% height=100%><source src="http://server11.hdgo.cc/flv/9f382d73f27aacb231c5cb26b42ec05d/5ca24e0be2622243b6dcf25f95da0239.mp4" type="video/mp4; codecs="avc1.4D401E, mp4a.40.2""></video>');
             //	}
-            //	
+            //
             //function setPlayer () {
             //    if (is_html5()) {
             //        setHTML5();
@@ -755,7 +695,7 @@ var html = require('showtime/html');
                     story: encodeURIComponent(showtime.entityDecode(query))
                 }
             });
-            var re = /fullresult_search[\S\s]+?date.+?>(.+?)<[\S\s]+?src="(.+?)"[\S\s]+?href="http:\/\/amovies.tv(.+?)" >(.+?)<[\S\s]+?<span>(.*)<\//g;
+            var re = /fullresult_search[\S\s]+?date.+?>(.+?)<[\S\s]+?src="(.+?)"[\S\s]+?href="http:\/\/amovies.org(.+?)" >(.+?)<[\S\s]+?<span>(.*)<\//g;
             var m = re.execAll(v.toString());
             for (var i = 0; i < m.length; i++) {
                 page.appendItem(PREFIX + ":page:" + m[i][3], "video", {
@@ -775,186 +715,7 @@ var html = require('showtime/html');
 
 
 
-    //http.request('https://api.vk.com/method/video.getEmbed', {args : ajaxParams}, function(result) {
-    //  if (result.response) {
-    //    if (!is_mobile()) {
-    //      var flashvars = ['nologo=1','md_author=UPFY.ORG � Video Search'];
-    //
-    //      each(result.response, function(key, value) {
-    //        if (key !== 'md_author' && key !== 'nologo') {
-    //          flashvars.push(key + '=' + euc(value));
-    //        }
-    //      });
-    //
-    //      video_wrapper.innerHTML = '<embed type="application/x-shockwave-flash" name="video_player" width="100%" height="100%" preventhide="1" quality="high" flashvars="' + flashvars.join('&amp;') + '" allowfullscreen="true" allowscriptaccess="always" bgcolor="#000000" wmode="opaque" src="/video.swf?45">';
-    //    } else {
-    //      var sources = [], videos = [], poster = result.response.jpg;
-    //
-    //      if (result.response.cache240 || result.response.cache360 || result.response.cache480 || result.response.cache720) {
-    //        each(result.response, function(key, value) {
-    //          if (key == 'cache240' || key == 'cache360' || key == 'cache480' || key == 'cache720') {
-    //            sources.push('<source src="'+value+'" type="video/mp4"></source>');
-    //            videos.push('<a href="'+value+'">'+key.replace('cache', '')+'</a>');
-    //          }
-    //        });
-    //      } else {
-    //        each(result.response, function(key, value) {
-    //          if (key == 'url240' || key == 'url360' || key == 'url480' || key == 'url720') {
-    //            sources.push('<source src="'+value+'" type="video/mp4"></source>');
-    //            videos.push('<a href="'+value+'">'+key.replace('url', '')+'</a>');
-    //          }
-    //        });
-    //      }
-    //
-    //      video_wrapper.innerHTML = '\
-    //        <video class="vv_inline_video" width="100%" height="100%" preload="none" controls="controls" poster="'+poster+'">\
-    //          '+sources.join('\n')+'\
-    //          <img src="'+poster+'" alt="">\
-    //          <div class="vv_not_support">The device does not support HTML5 video.<br />Download video: <div class="vv_download">'+videos.join(' ')+'</div></div>\
-    //        </video>';
-    //    }
-    //  } else {
-    //    video_wrapper.innerHTML = '<iframe preventhide="0" scrolling="no" width="100%" height="100%" style="overflow: hidden;" src="' + iframeParams.src + '" frameborder="0" allowfullscreen="true" webkitallowfullscreen="true" mozallowfullscreen="true"></iframe>';
-    //  }
-    //});
-
-
-    //function get_video_link(url) {
-    //    var JSON, v, result_url;
-    //
-    //    try {
-    //        p(get_video_link)
-    //        p(url)
-    //        //if (url.indexOf('video/embed/') != -1) {
-    //        //    //http://rutube.ru/api/play/trackinfo/6624790/?_=74878716&no_404=true&format=json
-    //        //    //http://rutube.ru/video/embed/6624804?p=DGxawOxbCDPdbNOEB3Cpww
-    //        //    //http://rutube.ru/api/play/trackinfo/6624804?p=DGxawOxbCDPdbNOEB3Cpww&no_404=true&format=json
-    //        //    result_url = url.replace('video/embed/', 'http://rutube.ru/api/play/trackinfo/') + '&no_404=true&format=json';
-    //        //    p(result_url);
-    //        //    JSON = JSON.parse(showtime.httpGet(result_url));
-    //        //    result_url = JSON.video_balancer.m3u8 + '|' + JSON.title;
-    //        //    ///.*.m3u8.*/
-    //        //    title = JSON.title;
-    //        //    return result_url;
-    //        //}
-    //        result_url = 'http://' + url;
-    //        showtime.trace('php Link for page: ' + result_url);
-    //        //vk.com
-    //        if (url.indexOf('video_ext.php') !== -1) {
-    //            v = showtime.httpGet(result_url).toString();
-    //            p(v)
-    //            if (v.indexOf('This video has been removed from public access.') !== -1) {
-    //                result_url = undefined
-    //                return result_url
-    //            }
-    //            JSON = (/var vars = (.+)/.exec(v)[1]);
-    //            if (JSON == '{};') {
-    //                result_url = /url: '(.+)'/.exec(v)[1];
-    //                url = result_url.replace('video.rutube.ru', 'rutube.ru/api/play/trackinfo') + '/?format=json';
-    //                JSON = JSON.parse(showtime.httpGet(url));
-    //                result_url = JSON.video_balancer.m3u8;
-    //                return result_url;
-    //            }
-    //            JSON = JSON.parse(JSON);
-    //
-    //            if (JSON.no_flv == 1) {
-    //                p('service.Resolution: ' + service.Resolution);
-    //                result_url = undefined;
-    //
-    //                switch (service.Resolution) {
-    //                    case '0':
-    //                        //if max resolution 720p
-    //                        result_url = JSON.cache720
-    //                        if (result_url == undefined) result_url = JSON.url720
-    //                        if (result_url == undefined) result_url = JSON.cache480
-    //                        if (result_url == undefined) result_url = JSON.url480
-    //                        if (result_url == undefined) result_url = JSON.cache360
-    //                        if (result_url == undefined) result_url = JSON.url360
-    //                        if (result_url == undefined) result_url = JSON.cache240
-    //                        if (result_url == undefined) result_url = JSON.url240
-    //                        break;
-    //                    case '1':
-    //                        result_url = JSON.cache720
-    //                        if (result_url == undefined) result_url = JSON.url720
-    //                        if (result_url == undefined) result_url = JSON.cache480
-    //                        if (result_url == undefined) result_url = JSON.url480
-    //                        if (result_url == undefined) result_url = JSON.cache360
-    //                        if (result_url == undefined) result_url = JSON.url360
-    //                        if (result_url == undefined) result_url = JSON.cache240
-    //                        if (result_url == undefined) result_url = JSON.url240
-    //                        break;
-    //                    case '2':
-    //                        result_url = JSON.cache480
-    //                        if (result_url == undefined) result_url = JSON.url480
-    //                        if (result_url == undefined) result_url = JSON.cache360
-    //                        if (result_url == undefined) result_url = JSON.url360
-    //                        if (result_url == undefined) result_url = JSON.cache240
-    //                        if (result_url == undefined) result_url = JSON.url240
-    //                        break;
-    //                    case '3':
-    //                        result_url = JSON.cache360
-    //                        if (result_url == undefined) result_url = JSON.url360
-    //                        if (result_url == undefined) result_url = JSON.cache240
-    //                        if (result_url == undefined) result_url = JSON.url240
-    //                        break;
-    //                }
-    //
-    //                p('result_url for:' + url + 'is ' + result_url)
-    //            }
-    //
-    //        }
-    //        // //mailru videos
-    //        // if (url.indexOf('ideoapi.my.mail.ru') !== -1) {
-    //        //      var sources = [];
-    //        //     v = showtime.httpGet(result_url).toString();
-    //        //     JSON = JSON.parse(showtime.httpGet(/metadataUrl":"([^"]+)/.exec(v)[1]));
-    //        //     for (i in JSON.videos){
-    //        //         sources[i] = ({url:JSON.videos[i].url,bitrate:JSON.videos[i].key})
-    //        //     page.appendItem(JSON.videos[i].url, "video", { title: JSON.meta.title + "in"+ JSON.videos[i].key, duration: JSON.meta.duration, icon: JSON.meta.poster})
-    //        //     }
-    //        //     p('sources'+sources)
-    //        //     
-    //        //     
-    //        //   //page.title = data.title;
-    //        // //page.source = "videoparams:" + JSON.stringify({
-    //        // //    //canonicalUrl: canonicalUrl,
-    //        // //    ////subscan
-    //        // //    //title: data.eng_title,
-    //        // //    ////imdbid: imdbid ? imdbid : '<unknown>',
-    //        // //    //year: data.year ? data.year : 0,
-    //        // //    //season: data.season ? data.season : -1,
-    //        // //    //episode: data.episode ? data.episode : -1,
-    //        // //    no_fs_scan: true,
-    //        // //    sources: sources
-    //        // //});
-    //        //     
-    //        //     
-    //        //     
-    //        //     
-    //        //     
-    //        //     
-    //        //// page.type = "video";    
-    //        // page.type = "directory";
-    //        //// page.contents = "item";
-    //        //
-    //        // page.loading = false;
-    //        //
-    //        // }
-    //
-    //
-    //
-    //        showtime.trace("Video Link: " + result_url);
-    //    } catch (err) {
-    //        e(err);
-    //        e(err.stack);
-    //    }
-    //    return result_url;
-    //}
-    //
     //extra functions
-    //
-    // Add to RegExp prototype
-
 
     function MetaTag(dom, tag) {
         var meta = dom.root.getElementByTagName('meta')
@@ -981,7 +742,7 @@ var html = require('showtime/html');
     function get_fanart(title) {
         var v, id;
         title = trim(title);
-        v = showtime.httpGet('http://www.thetvdb.com/api/GetSeries.php', {
+        v = http.request('http://www.thetvdb.com/api/GetSeries.php', {
             'seriesname': title,
             'language': 'ru'
         }).toString();
@@ -1084,6 +845,8 @@ var html = require('showtime/html');
     }
     //time stuff
 
+
+
     function countDelay(delay, lastRequest) {
         p("Getting difference between:" + lastRequest + " and " + Date.now());
         var timeDiff = Date.now() - lastRequest;
@@ -1091,4 +854,8 @@ var html = require('showtime/html');
         return timeDiff < delay ? delay - timeDiff : 0;
     };
 
+    function sleep(ms) {
+        var last = Date.now();
+        for (; !(Date.now() - last > ms);) {}
+    };
 })(this);
