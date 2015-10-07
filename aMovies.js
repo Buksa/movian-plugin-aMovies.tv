@@ -16,7 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-//ver 0.5.5
+//ver 0.5.6
 
 var http = require('showtime/http');
 var html = require('showtime/html');
@@ -30,7 +30,7 @@ var html = require('showtime/html');
     //logo
     var logo = plugin.path + 'logo.png';
     //tos
-    var tos = 'The developer has no affiliation with the sites what so ever.\n';
+    var tos = 'The developer has no affiliation with the sites what so ever.\n';7
     tos += 'Nor does he receive money or any other kind of benefits for them.\n\n';
     tos += 'The software is intended solely for educational and testing purposes,\n';
     tos += 'and while it may allow the user to create copies of legitimately acquired\n';
@@ -252,7 +252,13 @@ var html = require('showtime/html');
     //    page.contents = "items";
     //    page.type = "directory";
     //    page.metadata.logo = plugin.path + "logo.png";
-    //    v = http.request(BASE_URL + link).toString();
+    //v = http.request(BASE_URL + link, {
+    //         debug: service.debug,
+    //         method: 'GET',
+    //         headers: {
+    //             'User-Agent': USER_AGENT
+    //         }
+    //     }).toString();
     //    page.metadata.title = new showtime.RichText(PREFIX + ' | ' + (/<title>(.*?)<\/title>/.exec(v)[1]));
     //    re = /<title>(.*?)<\/title>/;
     //    m = re.exec(v);
@@ -264,7 +270,7 @@ var html = require('showtime/html');
     //
     //    function loader() {
     //        //http://amovies.org/serials/page/2/
-    //        var v = http.request(BASE_URL + link + 'page/' + offset + '/').toString();
+    //        var v = http.request(BASE_URL + link + 'page/' + offset + '/', { debug: service.debug, method: 'GET', headers: {'User-Agent': USER_AGENT}}).toString();
     //        var has_nextpage = false;
     //        var match = v.match(/<ul class="ul_clear navigation">[\S\s]+?"http:\/\/amovies.org(.+?)"><li>Вперед<\/li><\/a>/);
     //        if (match) has_nextpage = true
@@ -296,17 +302,23 @@ var html = require('showtime/html');
     plugin.addURI(PREFIX + ":page:(.*)", function(page, link) {
         var i, v, item, re, re2, m, m2, data = {};
         p('Open page: ' + BASE_URL + link);
-        v = http.request(BASE_URL + link).toString();
+        v = http.request(BASE_URL + link, {
+            debug: service.debug,
+            method: 'GET',
+            headers: {
+                'User-Agent': USER_AGENT
+            }
+        }).toString();
         var dom = html.parse(v)
-
         var article = dom.root.getElementByTagName('article')[0]
+        p(article)
         var title = article.getElementByTagName('h1')[0].textContent
-        p(title)
+        var ico = article.getElementByTagName('img')[0].attributes.getNamedItem('src').value
         data.Referer = BASE_URL + link
-        post_full = v.match(/<article class="post_full">([\s\S]+)<div class="vk_comments">/);
-        if (post_full != null) {
-            post_full = post_full[1]
-            p(post_full)
+
+        if (v.match(/<article class="post([\s\S]+)vk_comments/) != null) {
+            post_full = v.match(/<article class="post([\s\S]+)vk_comments/)
+            //print(post_full)
         } else {
             p(' Match attempt failed')
         }
@@ -314,7 +326,7 @@ var html = require('showtime/html');
         try {
             var md = {};
             md.title = title
-            md.icon = /<img src="([^"]+)/g.exec(post_full)[1]
+            md.icon = article.getElementByTagName('img')[0].attributes.getNamedItem('src').value
             md.icon = md.icon.indexOf('http') !== -1 ? md.icon : BASE_URL + md.icon
 
             data.title = md.title;
@@ -326,6 +338,7 @@ var html = require('showtime/html');
                 md.eng_title = match(/\|(.+?)\|/, ar_add_series, 1).trim();
                 data.eng_title = match(/\|(.+?)\|/, ar_add_series, 1).trim()
             }
+
             md.year = +/Год[\S\s]+?(\d+)/.exec(post_full)[1]
             data.year = +md.year;
             md.status = match(/<li><strong>Статус:<\/strong><span>([^<]+)/, post_full, 1);
@@ -342,7 +355,13 @@ var html = require('showtime/html');
             //            page.appendItem("", "separator", {
             //    title: new showtime.RichText('Трейлер:')
             //});
-            var json = http.request('https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&type=video&q=' + encodeURIComponent('Русский трейлер сериал ' + MetaTag(dom, 'og:title')) + '&key=AIzaSyCSDI9_w8ROa1UoE2CNIUdDQnUhNbp9XR4').toString();
+            var json = http.request('https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&type=video&q=' + encodeURIComponent('Русский трейлер сериал ' + MetaTag(dom, 'og:title')) + '&key=AIzaSyCSDI9_w8ROa1UoE2CNIUdDQnUhNbp9XR4', {
+                debug: service.debug,
+                method: 'GET',
+                headers: {
+                    'User-Agent': USER_AGENT
+                }
+            }).toString();
             if (json.indexOf('"id"') !== -1) {
                 json = JSON.parse(json);
                 //             https://gdata.youtube.com/feeds/api/videos?q=Трейлер&max-results=1&v=2&alt=jsonc&orderby=published
@@ -387,7 +406,7 @@ var html = require('showtime/html');
                 //    title: 'найти трейлер на YouTube'
                 //});
 
-                // var JSON = JSON.parse(http.request('http://query.yahooapis.com/v1/public/yql?q=use%20%22store%3A%2F%2FcruFRRY1BVjVHmIw4EPyYu%22%20as%20Untitled%3B%20SELECT%20Series.seriesid%20FROM%20Untitled%20WHERE%20seriesname%3D%22'+encodeURIComponent(s[0].trim())+'%22%20and%20language%3D%22ru%22%20|%20truncate%28count%3D1%29&format=json'))
+                // var JSON = JSON.parse(http.request('http://query.yahooapis.om/v1/public/yql?q=use%20%22store%3A%2F%2FcruFRRY1BVjVHmIw4EPyYu%22%20as%20Untitled%3B%20SELECT%20Series.seriesid%20FROM%20Untitled%20WHERE%20seriesname%3D%22'+encodeURIComponent(s[0].trim())+'%22%20and%20language%3D%22ru%22%20|%20truncate%28count%3D1%29&format=json'))
                 p('serials' + '\n' + link);
                 //re = /value=(?:"http:\/\/vk.com\/|"http:\/\/rutube.ru\/|"http:\/\/videoapi.my.mail.ru\/)([^"]+)[\S\s]+?>([^<]+)/g;
                 re = /value=(?:".*?)(oid=.+?&id=.+?&hash=[^&]+|videoapi.my.mail.ru\/[^"]+)[\S\s]+?>([^<]+)/g;
@@ -516,7 +535,13 @@ var html = require('showtime/html');
             v = http.request('http://' + data.url);
             // var video_key = getCookie('video_key',v.multiheaders)
             //https://api.vk.com/method/video.getEmbed?oid=-86688251&video_id=170996975&embed_hash=1c63dad9f125d575&hd=2
-            var json = JSON.parse(http.request(/metadataUrl":"([^"]+)/.exec(v)[1]));
+            var json = JSON.parse(http.request(/metadataUrl":"([^"]+)/.exec(v)[1], {
+                debug: service.debug,
+                method: 'GET',
+                headers: {
+                    'User-Agent': USER_AGENT
+                }
+            }).toString());
             for (i in json.videos) {
                 videoparams.sources = [{
                         url: json.videos[i].url,
@@ -543,7 +568,13 @@ var html = require('showtime/html');
 
         if (data.url.indexOf('oid=') !== -1) {
 
-            vars = JSON.parse(http.request('https://api.vk.com/method/video.getEmbed?' + data.url.replace('&id', '&video_id').replace('&hash', '&embed_hash')).toString());
+            vars = JSON.parse(http.request('https://api.vk.com/method/video.getEmbed?' + data.url.replace('&id', '&video_id').replace('&hash', '&embed_hash'), {
+                debug: service.debug,
+                method: 'GET',
+                headers: {
+                    'User-Agent': USER_AGENT
+                }
+            }).toString());
             p(vars)
             if (vars.error) {
                 page.metadata.title = vars.error.error_msg
@@ -684,8 +715,12 @@ var html = require('showtime/html');
     plugin.addSearcher(PREFIX + " - Videos", plugin.path + "logo.png", function(page, query) {
         try {
             showtime.trace("Search aMovies Videos for: " + query);
+
             var v = http.request(BASE_URL + '/index.php?do=search', {
-                debug: true,
+                debug: service.debug,
+                headers: {
+                    'User-Agent': USER_AGENT
+                },
                 postdata: {
                     do :'search',
                     subaction: 'search',
@@ -755,6 +790,18 @@ var html = require('showtime/html');
         return false;
     }
     // Add to RegExp prototype
+
+
+    /*            RegExp.prototype.execAll = function (str) {
+          //  var pattern = _globalize(this);
+            var matches = [];
+            var match;
+            while ((match = this.exec(str)) !== null) {
+                matches.push(match);
+            }
+            return matches.length ? matches : null;
+        }
+    /**/
     RegExp.prototype.execAll = function(str) {
         var match = null
         for (var matches = []; null !== (match = this.exec(str));) {
@@ -767,7 +814,7 @@ var html = require('showtime/html');
         }
         if (this.exec(str) == null) return null
         return matches;
-    };
+    }
 
     function match(c, a, b) {
         a = a.toString();
