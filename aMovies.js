@@ -16,7 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-//ver 0.5.6
+//ver 0.5.7
 
 var http = require('showtime/http');
 var html = require('showtime/html');
@@ -30,7 +30,8 @@ var html = require('showtime/html');
     //logo
     var logo = plugin.path + 'logo.png';
     //tos
-    var tos = 'The developer has no affiliation with the sites what so ever.\n';7
+    var tos = 'The developer has no affiliation with the sites what so ever.\n';
+
     tos += 'Nor does he receive money or any other kind of benefits for them.\n\n';
     tos += 'The software is intended solely for educational and testing purposes,\n';
     tos += 'and while it may allow the user to create copies of legitimately acquired\n';
@@ -172,7 +173,7 @@ var html = require('showtime/html');
                     }
                 }
             };
-            print("Let's wait " + delay + " msec before making a request!");
+            //print("Let's wait " + delay + " msec before making a request!");
             sleep(delay);
             var list = loadItems();
 
@@ -219,7 +220,7 @@ var html = require('showtime/html');
             i = 0;
 
         var item = re.exec(respond);
-        print(item)
+        //print(item)
         while (item) {
             p("Found title:" + item[4]);
             p(item[5])
@@ -409,7 +410,7 @@ var html = require('showtime/html');
                 // var JSON = JSON.parse(http.request('http://query.yahooapis.om/v1/public/yql?q=use%20%22store%3A%2F%2FcruFRRY1BVjVHmIw4EPyYu%22%20as%20Untitled%3B%20SELECT%20Series.seriesid%20FROM%20Untitled%20WHERE%20seriesname%3D%22'+encodeURIComponent(s[0].trim())+'%22%20and%20language%3D%22ru%22%20|%20truncate%28count%3D1%29&format=json'))
                 p('serials' + '\n' + link);
                 //re = /value=(?:"http:\/\/vk.com\/|"http:\/\/rutube.ru\/|"http:\/\/videoapi.my.mail.ru\/)([^"]+)[\S\s]+?>([^<]+)/g;
-                re = /value=(?:".*?)(oid=.+?&id=.+?&hash=[^&]+|videoapi.my.mail.ru\/[^"]+)[\S\s]+?>([^<]+)/g;
+                re = /value=(?:".*?)(oid=.+?&id=.+?&hash=[^&]+|videoapi.my.mail.ru\/[^"]+|couber.be\/[^"]+)[\S\s]+?>([^<]+)/g;
                 m = re.execAll(v);
                 if (m.toString()) {
                     for (i = 0; i < m.length; i++) {
@@ -511,26 +512,58 @@ var html = require('showtime/html');
         page.loading = true;
         var canonicalUrl = PREFIX + ":play:" + (data);
         data = JSON.parse(unescape(data));
+        p(data)
         if (data.season || data.episode) {
-            page.metadata.title = data.title + " | " + data.season + " \u0441\u0435\u0437\u043e\u043d " + " | " + data.episode + " \u0441\u0435\u0440\u0438\u044f"
-        } else page.metadata.title = data.title
+            title = data.title + " | " + data.season + " \u0441\u0435\u0437\u043e\u043d " + " | " + data.episode + " \u0441\u0435\u0440\u0438\u044f"
+        } else title = data.title
 
-            var videoparams = {
-                canonicalUrl: canonicalUrl,
-                no_fs_scan: true,
-                title: data.eng_title,
-                year: data.year ? data.year : 0,
-                season: data.season ? data.season : -1,
-                episode: data.episode ? data.episode : -1,
-                sources: [{
-                        url: []
-                    }
-                ],
-                subtitles: []
+            page.metadata.title = title
+        var videoparams = {
+            canonicalUrl: canonicalUrl,
+            no_fs_scan: true,
+            title: data.eng_title,
+            year: data.year ? data.year : 0,
+            season: data.season ? data.season : -1,
+            episode: data.episode ? data.episode : -1,
+            sources: [{
+                    url: []
+                }
+            ],
+            subtitles: []
         };
 
 
         p(data);
+        if (/couber.be/.test(data.url)) {
+
+            var v = http.request('http://' + data.url, {
+                method: 'GET',
+                headers: {
+                    Referer: data.Referer
+
+                }
+            }).toString();
+            //http:.*?hdgo.*?(?:mp4|\.flv)
+            //http:.*?hdgo.*?(\d{3})-.*?flv
+
+            p(v)
+            regExp = /(http:.*?hdgo.*?(\d{3})-.*?flv)/g;
+            while (((itemData = regExp.exec(v)) !== null) /*&& (i <= numItems)*/ ) {
+                //print(itemData)
+                p(videoparams)
+                videoparams.sources = [{
+                        url: itemData[1],
+                        mimetype: 'video/x-flv'
+                    }
+                ]
+                data.video_url = itemData[1]
+                video = "videoparams:" + JSON.stringify(videoparams);
+                page.appendItem(video, "video", {
+                    title: '[' + itemData[2] + ']-' + title,
+                    icon: /poster:"(.+?)"/.exec(v)[1]
+                })
+            }
+        }
         if (data.url.indexOf('ideoapi.my.mail.ru') !== -1) {
             v = http.request('http://' + data.url);
             // var video_key = getCookie('video_key',v.multiheaders)
