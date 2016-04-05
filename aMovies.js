@@ -16,7 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-//ver 0.5.7
+//ver 0.5.8
 
 var http = require('showtime/http');
 var html = require('showtime/html');
@@ -546,20 +546,25 @@ var html = require('showtime/html');
             //http:.*?hdgo.*?(?:mp4|\.flv)
             //http:.*?hdgo.*?(\d{3})-.*?flv
 
-            p(v)
-            regExp = /(http:.*?hdgo.*?(\d{3})-.*?flv)/g;
+            //p(v)
+            //regExp = /(http:.*?hdgo.*?(\d{3})-.*?flv)/g;
+            regExp = /(http:.*?hdgo.*?(?:mp4|\.flv))/g;
             while (((itemData = regExp.exec(v)) !== null) /*&& (i <= numItems)*/ ) {
-                //print(itemData)
-                p(videoparams)
+
                 videoparams.sources = [{
                         url: itemData[1],
-                        mimetype: 'video/x-flv'
+                        mimetype: /mp4/.test(itemData[1])? 'video/mp4' :''
                     }
                 ]
+
+p(videoparams)
+                type = /mp4/.test(itemData[1])? '[MP4]':'[FLV]'
+                resolution = (/(\d+)-/.test(itemData[1]) ? '-'+/(\d+)-/.exec(itemData[1])[1]+'-': '-')
+                //resolution = 
                 data.video_url = itemData[1]
                 video = "videoparams:" + JSON.stringify(videoparams);
                 page.appendItem(video, "video", {
-                    title: '[' + itemData[2] + ']-' + title,
+                    title:  type + resolution + title,
                     icon: /poster:"(.+?)"/.exec(v)[1]
                 })
             }
