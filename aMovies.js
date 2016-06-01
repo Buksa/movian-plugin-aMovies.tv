@@ -16,10 +16,10 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-//ver 0.5.8
+//ver 0.5.9
 
-var http = require('showtime/http');
-var html = require('showtime/html');
+var http = require('movian/http');
+var html = require('movian/html');
 
 (function(plugin) {
     var plugin_info = plugin.getDescriptor();
@@ -197,6 +197,7 @@ var html = require('showtime/html');
     }
 
     function listScraper(url, respond) {
+        var returnValue = []
         p('function listScraper (url=' + url + ',respond=' + respond + ')')
         if (!respond) {
             respond = http.request(url, {
@@ -207,99 +208,57 @@ var html = require('showtime/html');
                 }
             }).toString();
         }
-        //p("####################")
-        //var dom = html.parse(respond)
-        //var dle_content = dom.root.getElementById('dle-content')
-        //p(dle_content.getElementByTagName('li'))
-        //p("####################")
-        //
-        //        //1 = data 2 = img 3= href  4 = title 5 = tag
-        var re = /<div class="date">(.+?)<[\S\s]+?img src="([^"]+)[\S\s]+?<a href="http:\/\/amovies.org([^"]+)">([^<]+)[\S\s]+?<span>(.*)>/g;
-
-        var items = new Array(),
-            i = 0;
-
-        var item = re.exec(respond);
-        //print(item)
-        while (item) {
-            p("Found title:" + item[4]);
-            p(item[5])
-            items.push({
-                url: item[3],
-                title: item[4],
-                tag: item[5].replace('<br /></span', '').replace('<br />', ' | ').replace('</span', ''),
-                image: item[2],
-                description: ("Updated: " + item[1])
-            });
-            item = re.exec(respond);
+        p("####################")
+        var dom = html.parse(respond)
+        var dle_content = dom.root.getElementById('dle-content')
+        p(dle_content.getElementByTagName('li'))
+        /*
+        url:
+        title:
+        tag:
+        image:
+        desctiption:
+        */
+//        <div class="short-film">
+//	<div class="block">
+//		<a href="http://amovies.org/serials/4133-12-obezyan.html">
+//			<div class="film-date-t">Сегодня, 19:50</div>
+//			<img src="http://cs622122.vk.me/v622122516/17c1f/2c-f7juMABc.jpg" alt="12 обезьян смотреть онлайн">
+//			<div class="film-name">12 обезьян</div>
+//			<div><span class="views">10 194</span><span class="comm">0</span><div class="clear"></div></div>
+//			<div class="film-rating"><span class="up">2</span><span class="down">2</span><div class="clear"></div></div>
+//			<div class="voice s-bg">LostFilm</div>
+//			<div class="season"><span>Сезон</span><span>2</span></div>
+//			<div class="series"><span>Серия</span><span>7</span></div>
+//		</a>
+//	</div>
+//</div>
+        var elements = dle_content.getElementByClassName('short-film')
+        for (i = 0; i < elements.length; i++ ) {
+            element = elements[i]
+            p(element.getElementByTagName("img")[0].attributes.getNamedItem('src').value)
+            returnValue.push({
+                url: element.getElementByTagName("a")[0].attributes.getNamedItem('href').value.match(/http:\/\/amovies.org(.*)/)[1],
+                tag: '',
+                title: element.getElementByClassName("film-name")[0].textContent,
+                image: element.getElementByTagName("img")[0].attributes.getNamedItem('src').value,
+                description: '',
+            })
+            
         }
+        p("####################")
+        ////1 = data 2 = img 3= href  4 = title 5 = tag
+        //var re = /<div class="date">(.+?)<[\S\s]+?img src="([^"]+)[\S\s]+?<a href="http:\/\/amovies.org([^"]+)">([^<]+)[\S\s]+?<span>(.*)>/g;
+        //        url: item[3],
+        //        title: item[4],
+        //        tag: item[5].replace('<br /></span', '').replace('<br />', ' | ').replace('</span', ''),
+        //        image: item[2],
+        //        description: ("Updated: " + item[1])
 
-        //	re = /<div class="img">[\S\s]{0,300}<img src="(\S*)"/g;
-        //	item = re.exec(respond);
-        //	while(item) {
-        //	  p(item[1]);
-        //	  items[i].image = item[1];
-        //	  i++;
-        //
-        //	  item = re.exec(respond);
-        //	}
-
-        p('Returning list with ' + items.length + ' items');
-        return items;
+        p('Returning list with ' + returnValue.length + ' items');
+    return returnValue
     };
 
-    //plugin.addURI(PREFIX + ":index:(.*):(.*)", function(page, link, title) {
-    //    var re, v, m;
-    //    page.contents = "items";
-    //    page.type = "directory";
-    //    page.metadata.logo = plugin.path + "logo.png";
-    //v = http.request(BASE_URL + link, {
-    //         debug: service.debug,
-    //         method: 'GET',
-    //         headers: {
-    //             'User-Agent': USER_AGENT
-    //         }
-    //     }).toString();
-    //    page.metadata.title = new showtime.RichText(PREFIX + ' | ' + (/<title>(.*?)<\/title>/.exec(v)[1]));
-    //    re = /<title>(.*?)<\/title>/;
-    //    m = re.exec(v);
-    //    page.appendItem(PREFIX + ':start', 'directory', {
-    //        title: new showtime.RichText('сортировка по : ' + m[1])
-    //    });
-    //    var offset = 1;
-    //    //var total_page = parseInt(/<div class="navigation[\S\s]+?nav_ext[\S\s]+?">([^<]+)/.exec(v)[1], 10);
-    //
-    //    function loader() {
-    //        //http://amovies.org/serials/page/2/
-    //        var v = http.request(BASE_URL + link + 'page/' + offset + '/', { debug: service.debug, method: 'GET', headers: {'User-Agent': USER_AGENT}}).toString();
-    //        var has_nextpage = false;
-    //        var match = v.match(/<ul class="ul_clear navigation">[\S\s]+?"http:\/\/amovies.org(.+?)"><li>Вперед<\/li><\/a>/);
-    //        if (match) has_nextpage = true
-    //        re = /<div class="date">(.+?)<[\S\s]+?img src="([^"]+)[\S\s]+?<a href="http:\/\/amovies.org([^"]+)">([^<]+)[\S\s]+?<span>(.+?)<\/span>/g;
-    //        m = re.execAll(v);
-    //        for (var i = 0; i < m.length; i++) {
-    //            // p(m[i][1]+'\n'+m[i][2]+'\n'+m[i][3]+'\n')
-    //            page.appendItem(PREFIX + ":page:" + m[i][3], "video", {
-    //                title: new showtime.RichText(m[i][4] + ' | ' + m[i][5].replace('<br />', ' | ')),
-    //                description: new showtime.RichText(m[i][5] + '\n' + "Updated: " + m[i][1]),
-    //                icon: m[i][2]
-    //            });
-    //        }
-    //        //if (nnext) {
-    //        //page.appendItem(PREFIX + ':index:' + nnext, 'directory', {
-    //        //    title: new showtime.RichText('Вперед')
-    //        //});
-    //        //}
-    //        //var nnext = match(/<ul class="ul_clear navigation">[\S\s]+?"http:\/\/amovies.org(.+?)"><li>Вперед<\/li><\/a>/, v, 1);
-    //        ////p('nnext='+nnext+' !nnext='+!nnext+' !!nnext='+!!nnext)
-    //        offset++;
-    //        return has_nextpage;
-    //        // return offset < parseInt(/<div class="navigation[\S\s]+?nav_ext[\S\s]+?">([^<]+)/.exec(v)[1], 10)
-    //    }
-    //    loader();
-    //    page.loading = false;
-    //    page.paginator = loader;
-    //});
     plugin.addURI(PREFIX + ":page:(.*)", function(page, link) {
         var i, v, item, re, re2, m, m2, data = {};
         p('Open page: ' + BASE_URL + link);
@@ -311,195 +270,212 @@ var html = require('showtime/html');
             }
         }).toString();
         var dom = html.parse(v)
-        var article = dom.root.getElementByTagName('article')[0]
-        p(article)
-        var title = article.getElementByTagName('h1')[0].textContent
-        var ico = article.getElementByTagName('img')[0].attributes.getNamedItem('src').value
+        poster = (dom.root.getElementByClassName('poster')[0].getElementByTagName('img')[0].attributes.getNamedItem('src').value)
+        page.metadata.title = dom.root.getElementByTagName('h1')[0].textContent
+        
+        
         data.Referer = BASE_URL + link
-
-        if (v.match(/<article class="post([\s\S]+)vk_comments/) != null) {
-            post_full = v.match(/<article class="post([\s\S]+)vk_comments/)
-            //print(post_full)
-        } else {
-            p(' Match attempt failed')
+        
+        var elements = dom.root.getElementByTagName('option')
+        for (i = 0; i < elements.length; i++){
+            element = elements[i];
+            data.url = element.attributes.getNamedItem('value').value
+            data.title = element.textContent
+            page.appendItem(PREFIX + ":play:" + escape(JSON.stringify(data)), "video", {
+                title: element.textContent,
+                icon: poster,
+                })
         }
-
-        try {
-            var md = {};
-            md.title = title
-            md.icon = article.getElementByTagName('img')[0].attributes.getNamedItem('src').value
-            md.icon = md.icon.indexOf('http') !== -1 ? md.icon : BASE_URL + md.icon
-
-            data.title = md.title;
-            var ar_add_series = v.match(/class="title_d_dot">.*Архив добавления серий[\S\s]+?<\/div/);
-            if (ar_add_series) {
-                re = /: (.*?) \| ([0-9]+(?:\.[0-9]*)?) сезон/;
-                md.season = parseInt(match(/(\d+) сезон/, ar_add_series, 1), 10);
-                data.season = md.season;
-                md.eng_title = match(/\|(.+?)\|/, ar_add_series, 1).trim();
-                data.eng_title = match(/\|(.+?)\|/, ar_add_series, 1).trim()
-            }
-
-            md.year = +/Год[\S\s]+?(\d+)/.exec(post_full)[1]
-            data.year = +md.year;
-            md.status = match(/<li><strong>Статус:<\/strong><span>([^<]+)/, post_full, 1);
-            md.genre = match(/<li><strong>Жанр:<\/strong><span>([^<]+)/, post_full, 1);
-            md.duration = +match(/<li><strong>Время[\S\s]+?(\d+)/, post_full, 1);
-            md.country = match(/<li><strong>Страна:<\/strong><span>(.+?)</, post_full, 1);
-            md.rating = +match(/<li><strong>Рейтинг[\S\s]+?([0-9]+(?:\.[0-9]*)?)<\/strong>/, post_full, 1);
-            md.director = match(/<li><strong>Режиссер:<\/strong><span>(.+?)<\/span>/, post_full, 1);
-            md.actor = match(/<li><strong>Актеры:<\/strong><span>(.+?)<\/span><\/li>/, post_full, 1);
-            md.description = match(/<div class="post_text">([\S\s]+?)<\/div>/, post_full, 1);
-            page.metadata.title = md.title;
-            //Трейлер:
-            //
-            //            page.appendItem("", "separator", {
-            //    title: new showtime.RichText('Трейлер:')
-            //});
-            var json = http.request('https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&type=video&q=' + encodeURIComponent('Русский трейлер сериал ' + MetaTag(dom, 'og:title')) + '&key=AIzaSyCSDI9_w8ROa1UoE2CNIUdDQnUhNbp9XR4', {
-                debug: service.debug,
-                method: 'GET',
-                headers: {
-                    'User-Agent': USER_AGENT
-                }
-            }).toString();
-            if (json.indexOf('"id"') !== -1) {
-                json = JSON.parse(json);
-                //             https://gdata.youtube.com/feeds/api/videos?q=Трейлер&max-results=1&v=2&alt=jsonc&orderby=published
-                page.appendItem('youtube:video:simple:' + escape(page.metadata.title + " - " + 'Трейлер') + ":" + json.items[0].id.videoId, "video", {
-                    title: 'Трейлер: ' + MetaTag(dom, 'og:title'),
-                    icon: json.items[0].snippet.thumbnails.high.url
-                });
-            }
-            if (article.getElementByClassName('arhive_news').length) {
-                var arhive_news = article.getElementByClassName('arhive_news')[0]
-                //for (i = 0 in arhive_news.children){
-                for (i = 0; i < arhive_news.children.length; i++) {
-                    if (arhive_news.children[i].getElementByTagName('strong').length) {
-                        var season = arhive_news.children[i].getElementByTagName('strong')[0].textContent
-                        page.appendItem("", "separator", {
-                            title: new showtime.RichText(season)
-                        });
-                        for (j = 0; j < arhive_news.children[i].getElementByTagName('a').length; j++) {
-                            if (arhive_news.children[i].getElementByTagName('a').length) {
-                                var translate = arhive_news.children[i].getElementByTagName('a')[j].textContent
-                                var href = arhive_news.children[i].getElementByTagName('a')[j].attributes.getNamedItem('href').value
-                                p(href.match(/http:\/\/amovies.org\/(.*)/)[1])
-                                page.appendItem(PREFIX + ":page:" + (href.match('http://amovies.org(.*)')[1]), "video", {
-                                    title: new showtime.RichText(md.title + ' | ' + translate),
-                                    year: md.year,
-                                    icon: md.icon,
-                                    genre: md.genre,
-                                    duration: +md.duration,
-                                    rating: +md.rating * 10,
-                                    description: new showtime.RichText((md.status ? 'Статус: ' + md.status + '\n' : '') + (md.director ? 'Режиссер: ' + md.director + '\n' : '') + (md.actor ? 'Актеры: ' + md.actor + '\n' : '') + '\n' + md.description)
-                                });
-
-                            }
-                        }
-                    }
-                }
-            }
-
-
-            if (link.indexOf('serials') != -1 || link.indexOf('cartoons') != -1) {
-                //page.appendItem("youtube:searcher:video:" + 'Русский Трейлер ' + md.eng_title, "directory", {
-                //    title: 'найти трейлер на YouTube'
-                //});
-
-                // var JSON = JSON.parse(http.request('http://query.yahooapis.om/v1/public/yql?q=use%20%22store%3A%2F%2FcruFRRY1BVjVHmIw4EPyYu%22%20as%20Untitled%3B%20SELECT%20Series.seriesid%20FROM%20Untitled%20WHERE%20seriesname%3D%22'+encodeURIComponent(s[0].trim())+'%22%20and%20language%3D%22ru%22%20|%20truncate%28count%3D1%29&format=json'))
-                p('serials' + '\n' + link);
-                //re = /value=(?:"http:\/\/vk.com\/|"http:\/\/rutube.ru\/|"http:\/\/videoapi.my.mail.ru\/)([^"]+)[\S\s]+?>([^<]+)/g;
-                re = /value=(?:".*?)(oid=.+?&id=.+?&hash=[^&]+|videoapi.my.mail.ru\/[^"]+|couber.be\/[^"]+)[\S\s]+?>([^<]+)/g;
-                m = re.execAll(v);
-                if (m.toString()) {
-                    for (i = 0; i < m.length; i++) {
-                        data.url = m[i][1];
-                        data.episode = +match(/([0-9]+(?:\.[0-9]*)?)/, m[i][2], 1);
-                        data.title = md.eng_title
-                        item = page.appendItem(PREFIX + ":play:" + escape(JSON.stringify(data)), "video", {
-                            title: md.eng_title + ' | ' + md.season + ' сезон | ' + m[i][2],
-                            season: +md.season,
-                            imdbid: md.imdbid,
-                            year: md.year,
-                            icon: md.icon,
-                            genre: md.genre,
-                            duration: +md.duration,
-                            rating: +md.rating * 10,
-                            description: new showtime.RichText((md.status ? 'Статус: ' + md.status + '\n' : '') + (md.director ? 'Режиссер: ' + md.director + '\n' : '') + (md.actor ? 'Актеры: ' + md.actor + '\n' : '') + '\n' + md.description)
-                        });
-                        if (service.thetvdb) {
-                            item.bindVideoMetadata({
-                                title: md.title.split('езон')[0].trim(),
-                                season: +md.season,
-                                episode: data.episode
-                            });
-                        }
-                    }
-                }
-                //Перейти к каталогу сериала
-                re = /<div class="link_catalog">.+?"http:\/\/amovies.org(.+?)">(.+?)</;
-                m = re.exec(v);
-                if (m) {
-                    page.appendItem(PREFIX + ":page:" + m[1], "directory", {
-                        title: m[2]
-                    });
-                }
-            }
-            if (link.indexOf('/film/') != -1) {
-                data.eng_title = md.title.split(' | ')[1];
-                p('film' + '\n' + link);
-                p(md.title);
-                data.url = match(/<iframe src="http:\/\/vk.com\/([^"]+)/, post_full, 1)
-                data.url = match(/(http:\/\/hdgo.cc[^"]+)/, post_full, 1)
-                item = page.appendItem(PREFIX + ":play:" + escape(JSON.stringify(data)), "video", {
-                    title: md.title,
-                    season: +md.season,
-                    year: md.year,
-                    imdbid: md.imdbid,
-                    icon: md.icon,
-                    genre: md.genre,
-                    duration: +md.duration,
-                    rating: +md.rating * 10,
-                    description: new showtime.RichText((md.status ? 'Статус: ' + md.status + '\n' : '') + (md.director ? 'Режиссер: ' + md.director + '\n' : '') + (md.actor ? 'Актеры: ' + md.actor + '\n' : '') + '\n' + md.description)
-                });
-                if (service.thetvdb) {
-                    item.bindVideoMetadata({
-                        title: md.title.split(' | ')[1],
-                        year: md.year
-                    });
-                }
-            }
-            //http://amovies.org/eng
-            if (link.indexOf('/eng/') != -1) {
-                p('eng' + '\n' + link);
-                re = /value=(?:"http:\/\/vk.com\/|"http:\/\/rutube.ru\/)([^"]+)">(\W+)([0-9]+(?:\.[0-9]*)?) сезон ([0-9]+(?:\.[0-9]*)?) серия/g;
-                m = re.execAll(v);
-                if (m.toString()) {
-                    for (i = 0; i < m.length; i++) {
-                        data.title = m[i][2].trim();
-                        data.season = +m[i][3];
-                        data.episode = +m[i][4];
-                        data.url = m[i][1];
-                        item = page.appendItem(PREFIX + ":play:" + escape(JSON.stringify(data)), "video", {
-                            title: data.title + ' | ' + data.season + ' сезон ' + data.episode + ' серия'
-                        });
-                        if (service.thetvdb) {
-                            item.bindVideoMetadata({
-                                title: data.title,
-                                season: data.season,
-                                episode: data.episode
-                            });
-                        }
-                    }
-                }
-            }
-            p(md);
-            p(data);
-        } catch (ex) {
-            page.error("Failed to process page");
-            e(ex);
-        }
+        //var article = dom.root.getElementByTagName('article')[0]
+        //p(article)
+        //var title = article.getElementByTagName('h1')[0].textContent
+        //var ico = article.getElementByTagName('img')[0].attributes.getNamedItem('src').value
+        //
+        //if (v.match(/<article class="post([\s\S]+)vk_comments/) != null) {
+        //    post_full = v.match(/<article class="post([\s\S]+)vk_comments/)
+        //    //print(post_full)
+        //} else {
+        //    p(' Match attempt failed')
+        //}
+        //
+        //try {
+        //    
+        //    
+        //    var md = {};
+        //    md.title = title
+        //    md.icon = article.getElementByTagName('img')[0].attributes.getNamedItem('src').value
+        //    md.icon = md.icon.indexOf('http') !== -1 ? md.icon : BASE_URL + md.icon
+        //
+        //    data.title = md.title;
+        //    var ar_add_series = v.match(/class="title_d_dot">.*Архив добавления серий[\S\s]+?<\/div/);
+        //    if (ar_add_series) {
+        //        re = /: (.*?) \| ([0-9]+(?:\.[0-9]*)?) сезон/;
+        //        md.season = parseInt(match(/(\d+) сезон/, ar_add_series, 1), 10);
+        //        data.season = md.season;
+        //        md.eng_title = match(/\|(.+?)\|/, ar_add_series, 1).trim();
+        //        data.eng_title = match(/\|(.+?)\|/, ar_add_series, 1).trim()
+        //    }
+        //
+        //    md.year = +/Год[\S\s]+?(\d+)/.exec(post_full)[1]
+        //    data.year = +md.year;
+        //    md.status = match(/<li><strong>Статус:<\/strong><span>([^<]+)/, post_full, 1);
+        //    md.genre = match(/<li><strong>Жанр:<\/strong><span>([^<]+)/, post_full, 1);
+        //    md.duration = +match(/<li><strong>Время[\S\s]+?(\d+)/, post_full, 1);
+        //    md.country = match(/<li><strong>Страна:<\/strong><span>(.+?)</, post_full, 1);
+        //    md.rating = +match(/<li><strong>Рейтинг[\S\s]+?([0-9]+(?:\.[0-9]*)?)<\/strong>/, post_full, 1);
+        //    md.director = match(/<li><strong>Режиссер:<\/strong><span>(.+?)<\/span>/, post_full, 1);
+        //    md.actor = match(/<li><strong>Актеры:<\/strong><span>(.+?)<\/span><\/li>/, post_full, 1);
+        //    md.description = match(/<div class="post_text">([\S\s]+?)<\/div>/, post_full, 1);
+        //    page.metadata.title = md.title;
+        //    //Трейлер:
+        //    //
+        //    //            page.appendItem("", "separator", {
+        //    //    title: new showtime.RichText('Трейлер:')
+        //    //});
+        //    var json = http.request('https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=1&type=video&q=' + encodeURIComponent('Русский трейлер сериал ' + MetaTag(dom, 'og:title')) + '&key=AIzaSyCSDI9_w8ROa1UoE2CNIUdDQnUhNbp9XR4', {
+        //        debug: service.debug,
+        //        method: 'GET',
+        //        headers: {
+        //            'User-Agent': USER_AGENT
+        //        }
+        //    }).toString();
+        //    if (json.indexOf('"id"') !== -1) {
+        //        json = JSON.parse(json);
+        //        //             https://gdata.youtube.com/feeds/api/videos?q=Трейлер&max-results=1&v=2&alt=jsonc&orderby=published
+        //        page.appendItem('youtube:video:simple:' + escape(page.metadata.title + " - " + 'Трейлер') + ":" + json.items[0].id.videoId, "video", {
+        //            title: 'Трейлер: ' + MetaTag(dom, 'og:title'),
+        //            icon: json.items[0].snippet.thumbnails.high.url
+        //        });
+        //    }
+        //    if (article.getElementByClassName('arhive_news').length) {
+        //        var arhive_news = article.getElementByClassName('arhive_news')[0]
+        //        //for (i = 0 in arhive_news.children){
+        //        for (i = 0; i < arhive_news.children.length; i++) {
+        //            if (arhive_news.children[i].getElementByTagName('strong').length) {
+        //                var season = arhive_news.children[i].getElementByTagName('strong')[0].textContent
+        //                page.appendItem("", "separator", {
+        //                    title: new showtime.RichText(season)
+        //                });
+        //                for (j = 0; j < arhive_news.children[i].getElementByTagName('a').length; j++) {
+        //                    if (arhive_news.children[i].getElementByTagName('a').length) {
+        //                        var translate = arhive_news.children[i].getElementByTagName('a')[j].textContent
+        //                        var href = arhive_news.children[i].getElementByTagName('a')[j].attributes.getNamedItem('href').value
+        //                        p(href.match(/http:\/\/amovies.org\/(.*)/)[1])
+        //                        page.appendItem(PREFIX + ":page:" + (href.match('http://amovies.org(.*)')[1]), "video", {
+        //                            title: new showtime.RichText(md.title + ' | ' + translate),
+        //                            year: md.year,
+        //                            icon: md.icon,
+        //                            genre: md.genre,
+        //                            duration: +md.duration,
+        //                            rating: +md.rating * 10,
+        //                            description: new showtime.RichText((md.status ? 'Статус: ' + md.status + '\n' : '') + (md.director ? 'Режиссер: ' + md.director + '\n' : '') + (md.actor ? 'Актеры: ' + md.actor + '\n' : '') + '\n' + md.description)
+        //                        });
+        //
+        //                    }
+        //                }
+        //            }
+        //        }
+        //    }
+        //
+        //
+        //    if (link.indexOf('serials') != -1 || link.indexOf('cartoons') != -1) {
+        //        //page.appendItem("youtube:searcher:video:" + 'Русский Трейлер ' + md.eng_title, "directory", {
+        //        //    title: 'найти трейлер на YouTube'
+        //        //});
+        //
+        //        // var JSON = JSON.parse(http.request('http://query.yahooapis.om/v1/public/yql?q=use%20%22store%3A%2F%2FcruFRRY1BVjVHmIw4EPyYu%22%20as%20Untitled%3B%20SELECT%20Series.seriesid%20FROM%20Untitled%20WHERE%20seriesname%3D%22'+encodeURIComponent(s[0].trim())+'%22%20and%20language%3D%22ru%22%20|%20truncate%28count%3D1%29&format=json'))
+        //        p('serials' + '\n' + link);
+        //        //re = /value=(?:"http:\/\/vk.com\/|"http:\/\/rutube.ru\/|"http:\/\/videoapi.my.mail.ru\/)([^"]+)[\S\s]+?>([^<]+)/g;
+        //        re = /value=(?:".*?)(oid=.+?&id=.+?&hash=[^&]+|videoapi.my.mail.ru\/[^"]+|couber.be\/[^"]+)[\S\s]+?>([^<]+)/g;
+        //        m = re.execAll(v);
+        //        if (m.toString()) {
+        //            for (i = 0; i < m.length; i++) {
+        //                data.url = m[i][1];
+        //                data.episode = +match(/([0-9]+(?:\.[0-9]*)?)/, m[i][2], 1);
+        //                data.title = md.eng_title
+        //                item = page.appendItem(PREFIX + ":play:" + escape(JSON.stringify(data)), "video", {
+        //                    title: md.eng_title + ' | ' + md.season + ' сезон | ' + m[i][2],
+        //                    season: +md.season,
+        //                    imdbid: md.imdbid,
+        //                    year: md.year,
+        //                    icon: md.icon,
+        //                    genre: md.genre,
+        //                    duration: +md.duration,
+        //                    rating: +md.rating * 10,
+        //                    description: new showtime.RichText((md.status ? 'Статус: ' + md.status + '\n' : '') + (md.director ? 'Режиссер: ' + md.director + '\n' : '') + (md.actor ? 'Актеры: ' + md.actor + '\n' : '') + '\n' + md.description)
+        //                });
+        //                if (service.thetvdb) {
+        //                    item.bindVideoMetadata({
+        //                        title: md.title.split('езон')[0].trim(),
+        //                        season: +md.season,
+        //                        episode: data.episode
+        //                    });
+        //                }
+        //            }
+        //        }
+        //        //Перейти к каталогу сериала
+        //        re = /<div class="link_catalog">.+?"http:\/\/amovies.org(.+?)">(.+?)</;
+        //        m = re.exec(v);
+        //        if (m) {
+        //            page.appendItem(PREFIX + ":page:" + m[1], "directory", {
+        //                title: m[2]
+        //            });
+        //        }
+        //    }
+        //    if (link.indexOf('/film/') != -1) {
+        //        data.eng_title = md.title.split(' | ')[1];
+        //        p('film' + '\n' + link);
+        //        p(md.title);
+        //        data.url = match(/<iframe src="http:\/\/vk.com\/([^"]+)/, post_full, 1)
+        //        data.url = match(/(http:\/\/hdgo.cc[^"]+)/, post_full, 1)
+        //        item = page.appendItem(PREFIX + ":play:" + escape(JSON.stringify(data)), "video", {
+        //            title: md.title,
+        //            season: +md.season,
+        //            year: md.year,
+        //            imdbid: md.imdbid,
+        //            icon: md.icon,
+        //            genre: md.genre,
+        //            duration: +md.duration,
+        //            rating: +md.rating * 10,
+        //            description: new showtime.RichText((md.status ? 'Статус: ' + md.status + '\n' : '') + (md.director ? 'Режиссер: ' + md.director + '\n' : '') + (md.actor ? 'Актеры: ' + md.actor + '\n' : '') + '\n' + md.description)
+        //        });
+        //        if (service.thetvdb) {
+        //            item.bindVideoMetadata({
+        //                title: md.title.split(' | ')[1],
+        //                year: md.year
+        //            });
+        //        }
+        //    }
+        //    //http://amovies.org/eng
+        //    if (link.indexOf('/eng/') != -1) {
+        //        p('eng' + '\n' + link);
+        //        re = /value=(?:"http:\/\/vk.com\/|"http:\/\/rutube.ru\/)([^"]+)">(\W+)([0-9]+(?:\.[0-9]*)?) сезон ([0-9]+(?:\.[0-9]*)?) серия/g;
+        //        m = re.execAll(v);
+        //        if (m.toString()) {
+        //            for (i = 0; i < m.length; i++) {
+        //                data.title = m[i][2].trim();
+        //                data.season = +m[i][3];
+        //                data.episode = +m[i][4];
+        //                data.url = m[i][1];
+        //                item = page.appendItem(PREFIX + ":play:" + escape(JSON.stringify(data)), "video", {
+        //                    title: data.title + ' | ' + data.season + ' сезон ' + data.episode + ' серия'
+        //                });
+        //                if (service.thetvdb) {
+        //                    item.bindVideoMetadata({
+        //                        title: data.title,
+        //                        season: data.season,
+        //                        episode: data.episode
+        //                    });
+        //                }
+        //            }
+        //        }
+        //    }
+        //    p(md);
+        //    p(data);
+        //} catch (ex) {
+        //    page.error("Failed to process page");
+        //    e(ex);
+        //}
 
 
         page.metadata.logo = plugin.path + "logo.png";
@@ -535,19 +511,12 @@ var html = require('showtime/html');
 
         p(data);
         if (/couber.be/.test(data.url)) {
-
-            var v = http.request('http://' + data.url, {
+            var v = http.request(data.url, {
                 method: 'GET',
                 headers: {
                     Referer: data.Referer
-
                 }
             }).toString();
-            //http:.*?hdgo.*?(?:mp4|\.flv)
-            //http:.*?hdgo.*?(\d{3})-.*?flv
-
-            //p(v)
-            //regExp = /(http:.*?hdgo.*?(\d{3})-.*?flv)/g;
             regExp = /(http:.*?hdgo.*?(?:mp4|\.flv))/g;
             while (((itemData = regExp.exec(v)) !== null) /*&& (i <= numItems)*/ ) {
 
@@ -560,7 +529,6 @@ var html = require('showtime/html');
 p(videoparams)
                 type = /mp4/.test(itemData[1])? '[MP4]':'[FLV]'
                 resolution = (/(\d+)-/.test(itemData[1]) ? '-'+/(\d+)-/.exec(itemData[1])[1]+'-': '-')
-                //resolution = 
                 data.video_url = itemData[1]
                 video = "videoparams:" + JSON.stringify(videoparams);
                 page.appendItem(video, "video", {
@@ -569,6 +537,7 @@ p(videoparams)
                 })
             }
         }
+
         if (data.url.indexOf('ideoapi.my.mail.ru') !== -1) {
             v = http.request('http://' + data.url);
             // var video_key = getCookie('video_key',v.multiheaders)
