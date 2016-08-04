@@ -104,7 +104,7 @@ new page.Route(PREFIX + ":play:(.*)", function(page, data) {
   var videoparams = {
     canonicalUrl: canonicalUrl,
     no_fs_scan: true,
-    title: data.eng_title,
+    title: data.second_name,
     year: data.year ? data.year : 0,
     season: data.season ? data.season : -1,
     episode: data.episode ? data.episode : -1,
