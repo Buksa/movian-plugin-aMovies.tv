@@ -17,8 +17,8 @@ function ScrapeList(href, pageHtml) {
   }
   //search list
   log.p(dle_content.getElementByClassName('res-search').length)
-  log.p(pageHtml.dom.getElementByClassName('res-search')!== null)
-  var elements = dle_content.getElementByClassName('res-search').length ? dle_content.getElementByClassName('res-search')[0].children :''
+  log.p(pageHtml.dom.getElementByClassName('res-search') !== null)
+  var elements = dle_content.getElementByClassName('res-search').length ? dle_content.getElementByClassName('res-search')[0].children : ''
   for (i = 0; i < elements.length; i++) {
     element = elements[i]
     returnValue.push({
@@ -38,14 +38,14 @@ function ScrapePage(page, href, pageHtml) {
   log.p(pageHtml.text.toString())
 
   data.title = pageHtml.dom.getElementByTagName('h1')[0].textContent.replace('онлайн', '')
-  data.second_name = pageHtml.dom.getElementByClassName('second-name')[0].textContent
+  data.second_name = pageHtml.dom.getElementByClassName('second-name').length ? pageHtml.dom.getElementByClassName('second-name')[0].textContent : ''
   data.poster = BASE_URL + pageHtml.dom.getElementByClassName('poster')[0].getElementByTagName('img')[0].attributes.getNamedItem('src').value
   //data.desctiption = pageHtml.dom.getElementByClassName('film-block')[0].getElementByClassName('film-description')[0].textContent
 
 
   page.metadata.title = data.title;
 
-  if (pageHtml.dom.getElementByClassName('film-block') !== null) {
+  if (pageHtml.dom.getElementByClassName('film-block') !== null && !pageHtml.dom.getElementByTagName('option').length ) {
     var iFrame = pageHtml.dom.getElementByClassName('film-block')[0].getElementByTagName('iframe')[0].attributes.getNamedItem('src').value
   }
   data.poster = BASE_URL + pageHtml.dom.getElementByClassName('poster')[0].getElementByTagName('img')[0].attributes.getNamedItem('src').value
@@ -53,6 +53,20 @@ function ScrapePage(page, href, pageHtml) {
     Referer: BASE_URL + href,
     title: data.title.trim()
   })
+
+log.p(pageHtml.dom.getElementByTagName('option'))
+log.p('^^^^^^^^^^^^^^^^^^^^^^^^^')
+  var elements = pageHtml.dom.getElementByTagName('option')
+  for (i = 0; i < elements.length; i++) {
+    element = elements[i];
+    data.url = element.attributes.getNamedItem('value').value
+    data.title = element.textContent
+    page.appendItem(PREFIX + ":play:" + (JSON.stringify(data)), "video", {
+      title: element.textContent,
+      icon: 'poster',
+    })
+  }
+
 
   log.p(iFrame)
   if (/couber.be\/video\/serials\/pl\/sound\//.test(iFrame)) {
@@ -110,7 +124,10 @@ function ScrapePage(page, href, pageHtml) {
 
 
 function populateItemsFromList(page, list) {
-  log.p({function:'populateItemsFromList',list:list})
+  log.p({
+    function: 'populateItemsFromList',
+    list: list
+  })
   for (i = 0; i < list.length; i++) {
     page.appendItem(PREFIX + ":page:" + (list[i].url), "video", {
       title: list[i].title,
@@ -121,39 +138,45 @@ function populateItemsFromList(page, list) {
   }
 }
 
-exports.search = function(page,query){
+exports.search = function(page, query) {
   page.loading = true;
   page.type = 'directory';
   page.entries = 0;
-  log.p({title:'exports.search',params:query})
-          //try {
-            log.d("Search aMovies Videos for: " + query);
+  log.p({
+    title: 'exports.search',
+    params: query
+  })
+  //try {
+  log.d("Search aMovies Videos for: " + query);
 
-            var v = http.request(BASE_URL + '/index.php?do=search', {
-                debug: 1,//service.debug,
-                headers: {
-                    'User-Agent': UA
-                },
-                postdata: {
-                    do :'search',
-                    subaction: 'search',
-                    search_start: 1,
-                    full_search: 0,
-                    result_from: 1,
-                    story: encodeURIComponent(query)
-                }
-            });
+  var v = http.request(BASE_URL + '/index.php?do=search', {
+    debug: 1, //service.debug,
+    headers: {
+      'User-Agent': UA
+    },
+    postdata: {
+      do :'search',
+      subaction: 'search',
+      search_start: 1,
+      full_search: 0,
+      result_from: 1,
+      story: encodeURIComponent(query)
+    }
+  });
 
-            pageHtml = {text:v, dom: html.parse(v).root}
+  pageHtml = {
+    text: v,
+    dom: html.parse(v).root
+  }
 
-            list = ScrapeList('',pageHtml)
+  list = ScrapeList('', pageHtml)
 
-            populateItemsFromList(page, list);
-        //} catch (err) {
-           // log.d('aMovies - Ошибка поиска: ' + err);
-            //log.e(err);
-        //}
-        page.loading = false;
+  populateItemsFromList(page, list);
+  //} catch (err) {
+  // log.d('aMovies - Ошибка поиска: ' + err);
+  //log.e(err);
+  //}
+  page.loading = false;
 }
 exports.list = function(page, params) {
   page.loading = true;
