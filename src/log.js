@@ -1,3 +1,4 @@
+var depth =''
 function logData(data, logFunction, depth) {
   if (!depth) depth = 0;
 
@@ -17,29 +18,29 @@ function logData(data, logFunction, depth) {
 }
 
 exports.d = function (data) {
-  logData(data, console.log);
+  if (service.debug) logData(data, console.log);
 };
 
 exports.e = function (data) {
-  logData(data, console.error);
+  if (service.debug) logData(data, console.error);
 };
 
 exports.p = function (data) {
-  logData(dump(data), print);
+  if (service.debug) logData(data, print);
 };
 
-function dump(c, d) {
+exports.dump = function dump(c, depth) {
     var a = "";
-    d || (d = 0);
-    for (var e = "", b = 0; b < d + 1; b++) {
+    depth || (depth = 0);
+    for (var e = "", b = 0; b < depth + 1; b++) {
         e += "    ";
     }
     if ("object" == typeof c) {
         for (var f in c) {
-            b = c[f], "object" == typeof b ? (a += e + "'" + f + "' ...\n", a += dump(b, d + 1)) : a += e + "'" + f + "' => \"" + b + '"\n';
+            b = c[f], "object" == typeof b ? (a += e + "'" + f + "' ...\n", a += dump(b, depth + 1)) : a += e + "'" + f + "' => \"" + b + '"\n';
         }
     } else {
         a = "===>" + c + "<===(" + typeof c + ")";
     }
-    return a;
+    return (service.debug)? console.log(a) : ''
 }

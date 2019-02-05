@@ -1,10 +1,9 @@
-exports.call = function(page, href, args, callback) {
-
-  var URL = BASE_URL + href || '';
+exports.call = function(page, URL, args, callback) {
   var opts = {
     method: 'GET',
     headers: {
-      'User-Agent': UA
+      'User-Agent': UA,
+      'Referer': referer,
     },
     args: [args || {}],
     debug: service.debug,
@@ -13,8 +12,10 @@ exports.call = function(page, href, args, callback) {
     caching: true, // Enables Movian's built-in HTTP cache
   };
 
-  log.p(URL)
-  log.p(opts)
+  log.d({
+    'make request for': URL,
+    'with opts': opts
+  })
 
   http.request(URL, opts, function(err, result) {
     if (page) page.loading = false;
@@ -23,7 +24,10 @@ exports.call = function(page, href, args, callback) {
       else console.error(err);
     } else {
       try {
-        var pageHtml = {text:result, dom: html.parse(result).root};
+        var pageHtml = {
+          text: result,
+          dom: html.parse(result).root
+        };
         callback(pageHtml);
       } catch (e) {
         if (page) page.error(e);
@@ -31,4 +35,6 @@ exports.call = function(page, href, args, callback) {
       }
     }
   });
+  log.d('set referer to last requestet url:' + URL);
+  referer = URL;
 }
