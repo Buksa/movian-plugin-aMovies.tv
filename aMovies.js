@@ -16,7 +16,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-//ver 1.1.1
+//ver 1.1.2
 var plugin = JSON.parse(Plugin.manifest);
 
 var PREFIX = plugin.id;
