@@ -50,7 +50,7 @@ tos += 'plugin operation lead to or may lead to infringement or violation of the
 tos += 'rights of the respective content copyright holders.\n\n';
 tos += 'plugin is not licensed, approved or endorsed by any online resource\n ';
 tos += 'proprietary. Do you accept this terms?';
-console.log(Core.storagePath)
+
 io.httpInspectorCreate('http.*?amovies\..*/', function (ctrl) {
   ctrl.setHeader('User-Agent', UA);
   ctrl.setHeader('Referer', service.domain);
@@ -134,7 +134,6 @@ new page.Route(PREFIX + ':play:(.*)', function (page, data) {
     content = pageHtml.text.toString();
     regExp = /url:.*?'((.*?(?:mp4|\.flv)))/g;
     while ((itemData = regExp.exec(content)) !== null /*&& (i <= numItems)*/ ) {
-      console.log(itemData)
       videoparams.sources = [{
         url: 'http:'+itemData[1]
         //  mimetype: /mp4/.test(itemData[1])? 'video/mp4' :''

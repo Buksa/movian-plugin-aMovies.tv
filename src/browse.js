@@ -36,8 +36,6 @@ function ScrapeList(href, pageHtml) {
 
 function ScrapeiFrame(page, href, pageHtml) {
 	try {
-		console.error(pageHtml.text.toString());
-		console.error('^^^^^^^^^^^^^^^^^^^^^');
 		log.d(data);
 		log.p(pageHtml.text.toString());
 		var match = /src=\"(.*?video\/[a-z]+\/[a-zA-Z0-9_\-]+\/\d+\/)/.exec(pageHtml.text.toString());
@@ -61,10 +59,7 @@ function ScrapeiFrame(page, href, pageHtml) {
 					title: a[i]
 				}];
 				for (var j = 0; j < b[i].length; j++) {
-					console.error('***************************************');
 					data.url = data.iFrame.match(/http.*\/\/[^\/]+/)[0] + b[i][j].match(/\/video\/t.*/)[0];
-					console.error(data.url)
-					console.log(b[i][j].match(/\/video\/t.*/)[0]);
 					data.title = j + 1 + ' серия';
 					page.appendItem(PREFIX + ':play:' + JSON.stringify(data), 'video', {
 						title: data.title,
